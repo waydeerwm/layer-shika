@@ -3,12 +3,12 @@ use slint::{
     platform::{femtovg_renderer::FemtoVGRenderer, Renderer, WindowAdapter, WindowEvent},
     PhysicalSize, Window, WindowSize,
 };
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::rc::{Rc, Weak};
 
 pub struct FemtoVGWindow {
-    window: RefCell<Window>,
-    renderer: RefCell<FemtoVGRenderer>,
+    window: Window,
+    renderer: FemtoVGRenderer,
     is_dirty: Cell<bool>,
     size: Cell<PhysicalSize>,
     scale_factor: Cell<f32>,
@@ -19,8 +19,8 @@ impl FemtoVGWindow {
         Rc::new_cyclic(|weak_self| {
             let window = Window::new(weak_self.clone() as Weak<dyn WindowAdapter>);
             Self {
-                window: RefCell::new(window),
-                renderer: RefCell::new(renderer),
+                window,
+                renderer,
                 is_dirty: Default::default(),
                 size: Cell::new(PhysicalSize::default()),
                 scale_factor: Cell::new(1.),
@@ -30,7 +30,7 @@ impl FemtoVGWindow {
 
     pub fn render_frame_if_dirty(&self) {
         if self.is_dirty.get() {
-            match self.renderer.borrow_mut().render() {
+            match self.renderer.render() {
                 Ok(_) => {} //log::debug!("Frame rendered successfully"),
                 Err(e) => log::error!("Error rendering frame: {}", e),
             }
@@ -52,11 +52,11 @@ impl FemtoVGWindow {
 
 impl WindowAdapter for FemtoVGWindow {
     fn window(&self) -> &Window {
-        unsafe { self.window.as_ptr().as_ref().unwrap() }
+        &self.window
     }
 
     fn renderer(&self) -> &dyn Renderer {
-        unsafe { &*self.renderer.as_ptr() }
+        &self.renderer
     }
 
     fn size(&self) -> PhysicalSize {
@@ -65,7 +65,7 @@ impl WindowAdapter for FemtoVGWindow {
 
     fn set_size(&self, size: WindowSize) {
         self.size.set(size.to_physical(self.scale_factor()));
-        self.window.borrow().dispatch_event(WindowEvent::Resized {
+        self.window.dispatch_event(WindowEvent::Resized {
             size: size.to_logical(self.scale_factor()),
         });
     }
@@ -78,6 +78,6 @@ impl WindowAdapter for FemtoVGWindow {
 impl core::ops::Deref for FemtoVGWindow {
     type Target = Window;
     fn deref(&self) -> &Self::Target {
-        unsafe { self.window.as_ptr().as_ref().unwrap() }
+        &self.window
     }
 }
