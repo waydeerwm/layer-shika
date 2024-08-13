@@ -1,0 +1,14 @@
+[package]
+name = "layer-shika"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.86"
+glutin = "0.32.0"
+log = "0.4.22"
+raw-window-handle = "0.6.2"
+slint = "1.7.1"
+slint-interpreter = "1.7.1"
+smithay-client-toolkit = "0.19.2"
+wayland-client = "0.31.5"
