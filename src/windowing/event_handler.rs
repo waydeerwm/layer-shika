@@ -1,3 +1,4 @@
+use super::state::WindowState;
 use crate::impl_empty_dispatch;
 use log::info;
 use slint::platform::{PointerEventButton, WindowEvent};
@@ -7,6 +8,7 @@ use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::{
 };
 use std::rc::Rc;
 use std::{cell::RefCell, rc::Weak};
+use wayland_client::WEnum;
 use wayland_client::{
     globals::GlobalListContents,
     protocol::{
@@ -17,12 +19,9 @@ use wayland_client::{
         wl_seat::WlSeat,
         wl_surface::WlSurface,
     },
-    Connection, Dispatch, QueueHandle,
+    Connection, Dispatch, Proxy, QueueHandle,
 };
 
-use super::state::WindowState;
-
-#[derive(Clone)]
 pub struct WindowEventHandler {
     state: Weak<RefCell<WindowState>>,
 }
@@ -36,7 +35,7 @@ impl WindowEventHandler {
         self.state.upgrade().unwrap()
     }
 
-    fn handle_pointer_enter(&mut self, surface_x: f64, surface_y: f64) {
+    fn handle_pointer_enter(&self, surface_x: f64, surface_y: f64) {
         if let Some(state) = self.state.upgrade() {
             state
                 .borrow()
@@ -50,7 +49,7 @@ impl WindowEventHandler {
         }
     }
 
-    fn handle_pointer_leave(&mut self) {
+    fn handle_pointer_leave(&self) {
         if let Some(state) = self.state.upgrade() {
             if let Some(window) = state.borrow().window() {
                 window.dispatch_event(WindowEvent::PointerExited);
@@ -58,7 +57,7 @@ impl WindowEventHandler {
         }
     }
 
-    fn handle_pointer_motion(&mut self, surface_x: f64, surface_y: f64) {
+    fn handle_pointer_motion(&self, surface_x: f64, surface_y: f64) {
         if let Some(state) = self.state.upgrade() {
             state
                 .borrow()
@@ -72,15 +71,9 @@ impl WindowEventHandler {
         }
     }
 
-    fn handle_pointer_button(
-        &mut self,
-        button_state: wayland_client::WEnum<wl_pointer::ButtonState>,
-    ) {
+    fn handle_pointer_button(&self, button_state: wayland_client::WEnum<wl_pointer::ButtonState>) {
         if let Some(state) = self.state.upgrade() {
-            let is_press = matches!(
-                button_state,
-                wayland_client::WEnum::Value(wl_pointer::ButtonState::Pressed)
-            );
+            let is_press = matches!(button_state, WEnum::Value(wl_pointer::ButtonState::Pressed));
             let current_position = state.borrow().current_pointer_position();
             if let Some(window) = state.borrow().window() {
                 let event = if is_press {
@@ -140,7 +133,7 @@ impl Dispatch<WlOutput, ()> for WindowEventHandler {
     fn event(
         state: &mut Self,
         _proxy: &WlOutput,
-        event: <WlOutput as wayland_client::Proxy>::Event,
+        event: <WlOutput as Proxy>::Event,
         _data: &(),
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
@@ -150,7 +143,9 @@ impl Dispatch<WlOutput, ()> for WindowEventHandler {
                 info!("WlOutput size changed to {}x{}", width, height);
                 if let Some(state) = state.state.upgrade() {
                     let state_borrow = state.borrow();
-                    state_borrow.set_output_size(width as u32, height as u32);
+                    let width = width.try_into().unwrap_or_default();
+                    let height = height.try_into().unwrap_or_default();
+                    state_borrow.set_output_size(width, height);
                 }
             }
             wl_output::Event::Description { ref description } => {
@@ -186,7 +181,7 @@ impl Dispatch<WlPointer, ()> for WindowEventHandler {
     fn event(
         state: &mut Self,
         _proxy: &WlPointer,
-        event: <WlPointer as wayland_client::Proxy>::Event,
+        event: <WlPointer as Proxy>::Event,
         _data: &(),
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,

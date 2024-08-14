@@ -36,7 +36,7 @@ pub struct EGLContextBuilder {
 #[allow(dead_code)]
 impl EGLContextBuilder {
     pub fn new() -> Self {
-        Default::default()
+        Self::default()
     }
 
     pub fn with_display_id(mut self, display_id: ObjectId) -> Self {
@@ -49,17 +49,20 @@ impl EGLContextBuilder {
         self
     }
 
-    pub fn with_size(mut self, size: LayerSize) -> Self {
+    pub const fn with_size(mut self, size: LayerSize) -> Self {
         self.size = Some(size);
         self
     }
 
-    pub fn with_config_template(mut self, config_template: ConfigTemplateBuilder) -> Self {
+    pub const fn with_config_template(mut self, config_template: ConfigTemplateBuilder) -> Self {
         self.config_template = Some(config_template);
         self
     }
 
-    pub fn with_context_attributes(mut self, context_attributes: ContextAttributesBuilder) -> Self {
+    pub const fn with_context_attributes(
+        mut self,
+        context_attributes: ContextAttributesBuilder,
+    ) -> Self {
         self.context_attributes = Some(context_attributes);
         self
     }
@@ -73,7 +76,7 @@ impl EGLContextBuilder {
             .ok_or_else(|| anyhow!("Surface ID is required"))?;
         let size = self.size.ok_or_else(|| anyhow!("Size is required"))?;
 
-        let display_handle = create_wayland_display_handle(display_id);
+        let display_handle = create_wayland_display_handle(&display_id);
         let glutin_display = unsafe { Display::new(display_handle) }?;
 
         let config_template = self.config_template.unwrap_or_default();
@@ -84,7 +87,7 @@ impl EGLContextBuilder {
 
         let context = create_context(&glutin_display, &config, context_attributes)?;
 
-        let surface_handle = create_surface_handle(surface_id);
+        let surface_handle = create_surface_handle(&surface_id);
         let surface = create_surface(&glutin_display, &config, surface_handle, size)?;
 
         let context = context
@@ -108,9 +111,9 @@ impl EGLContext {
     }
 }
 
-fn create_wayland_display_handle(display_id: ObjectId) -> RawDisplayHandle {
-    let display =
-        NonNull::new(display_id.as_ptr() as *mut c_void).expect("NonNull pointer creation failed");
+fn create_wayland_display_handle(display_id: &ObjectId) -> RawDisplayHandle {
+    let display = NonNull::new(display_id.as_ptr().cast::<c_void>())
+        .expect("NonNull pointer creation failed");
     let handle = WaylandDisplayHandle::new(display);
     RawDisplayHandle::Wayland(handle)
 }
@@ -133,9 +136,9 @@ fn create_context(
         .map_err(|e| anyhow!("Failed to create context: {}", e))
 }
 
-fn create_surface_handle(surface_id: ObjectId) -> RawWindowHandle {
-    let surface =
-        NonNull::new(surface_id.as_ptr() as *mut c_void).expect("NonNull pointer creation failed");
+fn create_surface_handle(surface_id: &ObjectId) -> RawWindowHandle {
+    let surface = NonNull::new(surface_id.as_ptr().cast::<c_void>())
+        .expect("NonNull pointer creation failed");
     let handle = WaylandWindowHandle::new(surface);
     RawWindowHandle::Wayland(handle)
 }

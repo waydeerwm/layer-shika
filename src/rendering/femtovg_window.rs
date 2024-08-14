@@ -21,7 +21,7 @@ impl FemtoVGWindow {
             Self {
                 window,
                 renderer,
-                is_dirty: Default::default(),
+                is_dirty: Cell::default(),
                 size: Cell::new(PhysicalSize::default()),
                 scale_factor: Cell::new(1.),
             }
@@ -31,7 +31,7 @@ impl FemtoVGWindow {
     pub fn render_frame_if_dirty(&self) {
         if self.is_dirty.get() {
             match self.renderer.render() {
-                Ok(_) => {} //log::debug!("Frame rendered successfully"),
+                Ok(()) => {} //log::debug!("Frame rendered successfully"),
                 Err(e) => log::error!("Error rendering frame: {}", e),
             }
             self.is_dirty.set(false);

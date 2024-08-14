@@ -6,13 +6,13 @@ pub struct LayerSize {
 }
 
 impl LayerSize {
-    pub fn new(width: u32, height: u32) -> Self {
+    pub const fn new(width: u32, height: u32) -> Self {
         Self {
             size: PhysicalSize::new(width, height),
         }
     }
 
-    pub fn physical_size(&self) -> PhysicalSize {
+    pub const fn physical_size(self) -> PhysicalSize {
         self.size
     }
 }

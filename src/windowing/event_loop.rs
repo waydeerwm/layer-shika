@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
-use log::{debug, error, info};
-use smithay_client_toolkit::reexports::calloop::{self, EventLoop, Interest, Mode, PostAction};
+use log::{debug, error};
+use smithay_client_toolkit::reexports::calloop::{self, Interest, Mode, PostAction};
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 use wayland_client::{Connection, EventQueue};
@@ -44,7 +44,7 @@ impl EventLoopHandler {
         loop_handle
             .insert_source(
                 calloop::generic::Generic::new(connection, Interest::READ, Mode::Level),
-                move |_, connection, _| {
+                move |_, connection, ()| {
                     let result: Result<PostAction, anyhow::Error> = (|| {
                         let wayland_queue = wayland_queue
                             .upgrade()
@@ -73,13 +73,6 @@ impl EventLoopHandler {
             .map_err(|e| anyhow!("Failed to insert Wayland event source: {}", e))?;
 
         Ok(())
-    }
-
-    pub fn run(&self, event_loop: &mut EventLoop<()>) -> Result<()> {
-        info!("Starting event loop");
-        event_loop
-            .run(None, &mut (), |_| {})
-            .map_err(|e| anyhow!("Failed to run event loop: {}", e))
     }
 
     fn handle_wayland_events(

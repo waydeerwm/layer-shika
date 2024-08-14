@@ -1,4 +1,4 @@
-use std::{cell::Cell, rc::Weak};
+use std::cell::Cell;
 use std::rc::Rc;
 use log::info;
 use slint::{LogicalPosition, PhysicalSize};
@@ -14,7 +14,7 @@ pub struct WindowState {
     size: Cell<PhysicalSize>,
     output_size: Cell<PhysicalSize>,
     pointer: Option<WlPointer>,
-    window: Option<Weak<FemtoVGWindow>>,
+    window: Option<Rc<FemtoVGWindow>>,
     current_pointer_position: Cell<LogicalPosition>,
     scale_factor: f32,
     height: u32,
@@ -54,7 +54,7 @@ impl WindowState {
         }
 
         if let Some(s) = self.surface.as_ref() {
-            s.commit()
+            s.commit();
         }
     }
 
@@ -77,24 +77,24 @@ impl WindowState {
         self.current_pointer_position.get()
     }
     pub fn window(&self) -> Option<Rc<FemtoVGWindow>> {
-        self.window.as_ref().and_then(|w| w.upgrade())
+        self.window.clone()
     }
 
     pub fn layer_surface(&self) -> Option<Rc<ZwlrLayerSurfaceV1>> {
         self.layer_surface.clone()
     }
-    pub fn surface(&self) -> Option<&WlSurface> {
+    pub const fn surface(&self) -> Option<&WlSurface> {
         self.surface.as_ref()
     }
 
-    pub fn height(&self) -> u32 {
+    pub const fn height(&self) -> u32 {
         self.height
     }
 
     pub fn set_output_size(&self, width: u32, height: u32) {
         self.output_size.set(PhysicalSize::new(width, height));
     }
-    pub fn set_window(&mut self, window: Weak<FemtoVGWindow>) {
+    pub fn set_window(&mut self, window: Rc<FemtoVGWindow>) {
         self.window = Some(window);
     }
 

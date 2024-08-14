@@ -1,3 +1,11 @@
+use self::{event_handler::WindowEventHandler, event_loop::EventLoopHandler, state::WindowState};
+use crate::{
+    bind_globals,
+    common::LayerSize,
+    rendering::{
+        egl_context::EGLContext, femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform,
+    },
+};
 use anyhow::{Context, Result};
 use log::{debug, info};
 use slint::{platform::femtovg_renderer::FemtoVGRenderer, ComponentHandle, LogicalPosition};
@@ -19,20 +27,10 @@ use wayland_client::{
     Connection, EventQueue, Proxy, QueueHandle,
 };
 
-use crate::{
-    bind_globals,
-    common::LayerSize,
-    rendering::{
-        egl_context::EGLContext, femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform,
-    },
-};
-
 mod event_handler;
 mod event_loop;
 mod macros;
 mod state;
-
-use self::{event_handler::WindowEventHandler, event_loop::EventLoopHandler, state::WindowState};
 
 pub struct WindowConfig {
     height: u32,
@@ -43,7 +41,7 @@ pub struct WindowConfig {
     exclusive_zone: i32,
     scale_factor: f32,
     namespace: String,
-    component_definition: Option<Rc<ComponentDefinition>>,
+    component_definition: Option<ComponentDefinition>,
 }
 
 impl Default for WindowConfig {
@@ -55,7 +53,7 @@ impl Default for WindowConfig {
             anchor: Anchor::Top | Anchor::Left | Anchor::Right,
             keyboard_interactivity: KeyboardInteractivity::OnDemand,
             exclusive_zone: -1,
-            namespace: "layer-sheeka".to_string(),
+            namespace: "layer-shika".to_owned(),
             scale_factor: 1.0,
             component_definition: None,
         }
@@ -73,53 +71,69 @@ impl Default for WindowingSystemBuilder {
 }
 
 impl WindowingSystemBuilder {
+    #[must_use]
+    #[inline]
     pub fn new() -> Self {
         Self {
             config: WindowConfig::default(),
         }
     }
 
-    pub fn with_height(mut self, height: u32) -> Self {
+    #[must_use]
+    pub const fn with_height(mut self, height: u32) -> Self {
         self.config.height = height;
         self
     }
 
-    pub fn with_layer(mut self, layer: zwlr_layer_shell_v1::Layer) -> Self {
+    #[must_use]
+    #[inline]
+    pub const fn with_layer(mut self, layer: zwlr_layer_shell_v1::Layer) -> Self {
         self.config.layer = layer;
         self
     }
 
-    pub fn with_margin(mut self, top: i32, right: i32, bottom: i32, left: i32) -> Self {
+    #[must_use]
+    #[inline]
+    pub const fn with_margin(mut self, top: i32, right: i32, bottom: i32, left: i32) -> Self {
         self.config.margin = (top, right, bottom, left);
         self
     }
-
-    pub fn with_anchor(mut self, anchor: Anchor) -> Self {
+    #[must_use]
+    #[inline]
+    pub const fn with_anchor(mut self, anchor: Anchor) -> Self {
         self.config.anchor = anchor;
         self
     }
-
-    pub fn with_keyboard_interactivity(mut self, interactivity: KeyboardInteractivity) -> Self {
+    #[must_use]
+    #[inline]
+    pub const fn with_keyboard_interactivity(
+        mut self,
+        interactivity: KeyboardInteractivity,
+    ) -> Self {
         self.config.keyboard_interactivity = interactivity;
         self
     }
-
-    pub fn with_exclusive_zone(mut self, zone: i32) -> Self {
+    #[must_use]
+    #[inline]
+    pub const fn with_exclusive_zone(mut self, zone: i32) -> Self {
         self.config.exclusive_zone = zone;
         self
     }
-
+    #[must_use]
+    #[inline]
     pub fn with_namespace(mut self, namespace: String) -> Self {
         self.config.namespace = namespace;
         self
     }
-
-    pub fn with_scale_factor(mut self, scale_factor: f32) -> Self {
+    #[must_use]
+    #[inline]
+    pub const fn with_scale_factor(mut self, scale_factor: f32) -> Self {
         self.config.scale_factor = scale_factor;
         self
     }
-
-    pub fn with_component_definition(mut self, component: Rc<ComponentDefinition>) -> Self {
+    #[must_use]
+    #[inline]
+    pub fn with_component_definition(mut self, component: ComponentDefinition) -> Self {
         self.config.component_definition = Some(component);
         self
     }
@@ -185,7 +199,8 @@ impl<'a> WindowingSystem<'a> {
 
         system.wait_for_configure()?;
         system.initialize_renderer_and_ui()?;
-        system.initialize_event_loop_handler()?;
+        system.initialize_event_loop_handler();
+        system.setup_event_sources()?;
 
         Ok(system)
     }
@@ -253,14 +268,14 @@ impl<'a> WindowingSystem<'a> {
             config.margin.2,
             config.margin.3,
         );
-        println!("Setting exclusive zone: {}", config.exclusive_zone);
+
         layer_surface.set_exclusive_zone(config.exclusive_zone);
         layer_surface.set_keyboard_interactivity(config.keyboard_interactivity);
         layer_surface.set_size(1, config.height);
         surface.commit();
     }
 
-    fn wait_for_configure(&mut self) -> Result<()> {
+    fn wait_for_configure(&self) -> Result<()> {
         info!("Waiting for surface to be configured...");
         loop {
             self.connection.flush()?;
@@ -288,10 +303,10 @@ impl<'a> WindowingSystem<'a> {
             .clone()
             .ok_or_else(|| anyhow::anyhow!("Component definition not set"))?;
         let (window, component_instance) =
-            self.initialize_slint_ui(renderer, component_definition)?;
+            self.initialize_slint_ui(renderer, &component_definition)?;
 
         self.window = Some(window.clone());
-        self.state.borrow_mut().set_window(Rc::downgrade(&window));
+        self.state.borrow_mut().set_window(window);
         self.component_instance = Some(component_instance);
 
         Ok(())
@@ -310,7 +325,7 @@ impl<'a> WindowingSystem<'a> {
             .with_surface_id(surface.id())
             .with_size(LayerSize::new(size.width, size.height))
             .build()
-            .context("Failed to build EGL context")?;
+            .map_err(|e| anyhow::anyhow!("Failed to create EGL context: {:?}", e))?;
 
         debug!("Creating FemtoVGRenderer");
         FemtoVGRenderer::new(context).context("Failed to create FemtoVGRenderer")
@@ -319,7 +334,7 @@ impl<'a> WindowingSystem<'a> {
     fn initialize_slint_ui(
         &self,
         renderer: FemtoVGRenderer,
-        component_definition: Rc<ComponentDefinition>,
+        component_definition: &ComponentDefinition,
     ) -> Result<(Rc<FemtoVGWindow>, Rc<ComponentInstance>)> {
         let femtovg_window = FemtoVGWindow::new(renderer);
         let size = self.state.borrow().size();
@@ -343,7 +358,7 @@ impl<'a> WindowingSystem<'a> {
         Ok((femtovg_window, slint_component))
     }
 
-    pub fn initialize_event_loop_handler(&mut self) -> Result<()> {
+    pub fn initialize_event_loop_handler(&mut self) {
         let event_loop_handler = EventLoopHandler::new(
             Rc::downgrade(self.window.as_ref().unwrap()),
             Rc::downgrade(&self.event_queue),
@@ -352,7 +367,6 @@ impl<'a> WindowingSystem<'a> {
         );
 
         self.event_loop_handler = Some(event_loop_handler);
-        Ok(())
     }
 
     pub fn setup_event_sources(&self) -> Result<()> {
@@ -377,12 +391,9 @@ impl<'a> WindowingSystem<'a> {
             window.render_frame_if_dirty();
         }
 
-        let event_loop_handler = self
-            .event_loop_handler
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("EventLoopHandler not initialized"))?;
-
-        event_loop_handler.run(&mut self.event_loop)
+        self.event_loop
+            .run(None, &mut (), |()| {})
+            .map_err(|e| anyhow::anyhow!("Failed to run event loop: {}", e))
     }
 
     pub fn component_instance(&self) -> Option<Rc<ComponentInstance>> {
@@ -397,7 +408,7 @@ impl<'a> WindowingSystem<'a> {
         self.state.clone()
     }
 
-    pub fn display(&self) -> &WlDisplay {
+    pub const fn display(&self) -> &WlDisplay {
         &self.display
     }
 }
