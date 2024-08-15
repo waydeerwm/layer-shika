@@ -2,13 +2,37 @@
 name = "layer-shika"
 version = "0.1.0"
 edition = "2021"
+description = "A layer shell library crate with Slint as UI"
+license = "MIT OR Apache-2.0"
+repository = "https://codeberg.org/drendog/layer-shika"
+readme = "README.md"
+keywords = [
+    "layer-shell",
+    "wayland",
+    "slint",
+    "layer",
+    "shell",
+    "gui",
+    "ui",
+    "compositor",
+    "femtovg",
+    "smithay",
+    "wlroots",
+    "sway",
+]
+categories = ["gui", "compositor"]
 
 [dependencies]
 anyhow = "1.0.86"
-glutin = "0.32.0"
+glutin = { version = "0.32.0", default-features = false, features = [
+    "wayland",
+] }
 log = "0.4.22"
 raw-window-handle = "0.6.2"
-slint = "1.7.1"
+slint = { version = "1.7.1", default-features = false, features = [
+    "compat-1-2",
+    "renderer-femtovg",
+] }
 slint-interpreter = "1.7.1"
 smithay-client-toolkit = "0.19.2"
 wayland-client = "0.31.5"
