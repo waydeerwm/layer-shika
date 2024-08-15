@@ -38,7 +38,7 @@ impl WindowEventHandler {
     fn handle_pointer_enter(&self, surface_x: f64, surface_y: f64) {
         if let Some(state) = self.state.upgrade() {
             state
-                .borrow()
+                .borrow_mut()
                 .set_current_pointer_position(surface_x, surface_y);
             if let Some(window) = state.borrow().window() {
                 let logical_position = state.borrow().current_pointer_position();
@@ -60,7 +60,7 @@ impl WindowEventHandler {
     fn handle_pointer_motion(&self, surface_x: f64, surface_y: f64) {
         if let Some(state) = self.state.upgrade() {
             state
-                .borrow()
+                .borrow_mut()
                 .set_current_pointer_position(surface_x, surface_y);
             if let Some(window) = state.borrow().window() {
                 let logical_position = state.borrow().current_pointer_position();

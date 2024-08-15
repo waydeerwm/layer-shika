@@ -10,15 +10,13 @@ use glutin::{
 use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle,
 };
-use slint::platform::femtovg_renderer::OpenGLInterface;
+use slint::{platform::femtovg_renderer::OpenGLInterface, PhysicalSize};
 use std::{
     ffi::{self, c_void, CStr},
     num::NonZeroU32,
     ptr::NonNull,
 };
 use wayland_client::backend::ObjectId;
-
-use crate::common::LayerSize;
 
 pub struct EGLContext {
     context: PossiblyCurrentContext,
@@ -28,7 +26,7 @@ pub struct EGLContext {
 pub struct EGLContextBuilder {
     display_id: Option<ObjectId>,
     surface_id: Option<ObjectId>,
-    size: Option<LayerSize>,
+    size: Option<PhysicalSize>,
     config_template: Option<ConfigTemplateBuilder>,
     context_attributes: Option<ContextAttributesBuilder>,
 }
@@ -49,7 +47,7 @@ impl EGLContextBuilder {
         self
     }
 
-    pub const fn with_size(mut self, size: LayerSize) -> Self {
+    pub const fn with_size(mut self, size: PhysicalSize) -> Self {
         self.size = Some(size);
         self
     }
@@ -147,12 +145,12 @@ fn create_surface(
     glutin_display: &Display,
     config: &glutin::api::egl::config::Config,
     surface_handle: RawWindowHandle,
-    size: LayerSize,
+    size: PhysicalSize,
 ) -> Result<Surface<WindowSurface>> {
     let attrs = SurfaceAttributesBuilder::<WindowSurface>::new().build(
         surface_handle,
-        NonZeroU32::new(size.physical_size().width).unwrap(),
-        NonZeroU32::new(size.physical_size().height).unwrap(),
+        NonZeroU32::new(size.width).unwrap(),
+        NonZeroU32::new(size.height).unwrap(),
     );
     unsafe { glutin_display.create_window_surface(config, &attrs) }
         .map_err(|e| anyhow!("Failed to create window surface: {}", e))

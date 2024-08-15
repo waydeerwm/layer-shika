@@ -34,12 +34,12 @@ impl EventLoopHandler {
     pub fn setup_wayland_event_source(&self, loop_handle: &calloop::LoopHandle<()>) -> Result<()> {
         debug!("Setting up Wayland event source");
 
-        let wayland_queue = self.wayland_queue.clone();
-        let event_handler = self.event_handler.clone();
+        let wayland_queue = Weak::clone(&self.wayland_queue);
+        let event_handler = Weak::clone(&self.event_handler);
         let connection = self.connection.upgrade().ok_or_else(|| {
             anyhow!("Failed to get Wayland connection reference in Wayland event source")
         })?;
-        let window = self.window.clone();
+        let window = Weak::clone(&self.window);
 
         loop_handle
             .insert_source(

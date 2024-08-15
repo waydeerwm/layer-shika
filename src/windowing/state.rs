@@ -9,13 +9,13 @@ use crate::rendering::femtovg_window::FemtoVGWindow;
 use super::WindowConfig;
 
 pub struct WindowState {
-    surface: Option<WlSurface>,
+    surface: Option<Rc<WlSurface>>,
     layer_surface: Option<Rc<ZwlrLayerSurfaceV1>>,
     size: Cell<PhysicalSize>,
     output_size: Cell<PhysicalSize>,
-    pointer: Option<WlPointer>,
+    pointer: Option<Rc<WlPointer>>,
     window: Option<Rc<FemtoVGWindow>>,
-    current_pointer_position: Cell<LogicalPosition>,
+    current_pointer_position: LogicalPosition,
     scale_factor: f32,
     height: u32,
     exclusive_zone: i32,
@@ -30,7 +30,7 @@ impl WindowState {
             output_size: Cell::new(PhysicalSize::default()),
             pointer: None,
             window: None,
-            current_pointer_position: Cell::new(LogicalPosition::default()),
+            current_pointer_position: LogicalPosition::default(),
             scale_factor: config.scale_factor,
             height: config.height,
             exclusive_zone: config.exclusive_zone,
@@ -40,7 +40,6 @@ impl WindowState {
     pub fn update_size(&self, width: u32, height: u32) {
         let new_size = PhysicalSize::new(width, height);
         self.size.set(new_size);
-
         if let Some(window) = &self.window() {
             info!("Updating window size to {}x{}", width, height);
             window.set_size(slint::WindowSize::Physical(new_size));
@@ -58,13 +57,13 @@ impl WindowState {
         }
     }
 
-    pub fn set_current_pointer_position(&self, physical_x: f64, physical_y: f64) {
+    pub fn set_current_pointer_position(&mut self, physical_x: f64, physical_y: f64) {
         let scale_factor = self.scale_factor;
         let logical_position = LogicalPosition::new(
             physical_x as f32 / scale_factor,
             physical_y as f32 / scale_factor,
         );
-        self.current_pointer_position.set(logical_position);
+        self.current_pointer_position = logical_position;
     }
 
     pub fn size(&self) -> PhysicalSize {
@@ -74,7 +73,7 @@ impl WindowState {
         self.output_size.get()
     }
     pub fn current_pointer_position(&self) -> LogicalPosition {
-        self.current_pointer_position.get()
+        self.current_pointer_position
     }
     pub fn window(&self) -> Option<Rc<FemtoVGWindow>> {
         self.window.clone()
@@ -83,8 +82,8 @@ impl WindowState {
     pub fn layer_surface(&self) -> Option<Rc<ZwlrLayerSurfaceV1>> {
         self.layer_surface.clone()
     }
-    pub const fn surface(&self) -> Option<&WlSurface> {
-        self.surface.as_ref()
+    pub fn surface(&self) -> Option<Rc<WlSurface>> {
+        self.surface.clone()
     }
 
     pub const fn height(&self) -> u32 {
@@ -102,10 +101,10 @@ impl WindowState {
         self.layer_surface = Some(layer_surface);
     }
 
-    pub fn set_surface(&mut self, surface: WlSurface) {
+    pub fn set_surface(&mut self, surface: Rc<WlSurface>) {
         self.surface = Some(surface);
     }
-    pub fn set_pointer(&mut self, pointer: WlPointer) {
+    pub fn set_pointer(&mut self, pointer: Rc<WlPointer>) {
         self.pointer = Some(pointer);
     }
 }

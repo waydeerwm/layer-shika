@@ -1,7 +1,6 @@
 use self::{event_handler::WindowEventHandler, event_loop::EventLoopHandler, state::WindowState};
 use crate::{
     bind_globals,
-    common::LayerSize,
     rendering::{
         egl_context::EGLContext, femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform,
     },
@@ -17,7 +16,10 @@ use smithay_client_toolkit::reexports::{
         zwlr_layer_surface_v1::{Anchor, KeyboardInteractivity, ZwlrLayerSurfaceV1},
     },
 };
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 use wayland_client::{
     globals::{registry_queue_init, GlobalList},
     protocol::{
@@ -71,8 +73,8 @@ impl Default for WindowingSystemBuilder {
 }
 
 impl WindowingSystemBuilder {
-    #[must_use]
     #[inline]
+    #[must_use]
     pub fn new() -> Self {
         Self {
             config: WindowConfig::default(),
@@ -86,26 +88,24 @@ impl WindowingSystemBuilder {
     }
 
     #[must_use]
-    #[inline]
     pub const fn with_layer(mut self, layer: zwlr_layer_shell_v1::Layer) -> Self {
         self.config.layer = layer;
         self
     }
 
     #[must_use]
-    #[inline]
     pub const fn with_margin(mut self, top: i32, right: i32, bottom: i32, left: i32) -> Self {
         self.config.margin = (top, right, bottom, left);
         self
     }
+
     #[must_use]
-    #[inline]
     pub const fn with_anchor(mut self, anchor: Anchor) -> Self {
         self.config.anchor = anchor;
         self
     }
+
     #[must_use]
-    #[inline]
     pub const fn with_keyboard_interactivity(
         mut self,
         interactivity: KeyboardInteractivity,
@@ -113,26 +113,26 @@ impl WindowingSystemBuilder {
         self.config.keyboard_interactivity = interactivity;
         self
     }
+
     #[must_use]
-    #[inline]
     pub const fn with_exclusive_zone(mut self, zone: i32) -> Self {
         self.config.exclusive_zone = zone;
         self
     }
+
     #[must_use]
-    #[inline]
     pub fn with_namespace(mut self, namespace: String) -> Self {
         self.config.namespace = namespace;
         self
     }
+
     #[must_use]
-    #[inline]
     pub const fn with_scale_factor(mut self, scale_factor: f32) -> Self {
         self.config.scale_factor = scale_factor;
         self
     }
+
     #[must_use]
-    #[inline]
     pub fn with_component_definition(mut self, component: ComponentDefinition) -> Self {
         self.config.component_definition = Some(component);
         self
@@ -234,7 +234,7 @@ impl<'a> WindowingSystem<'a> {
         event_handler: &Rc<RefCell<WindowEventHandler>>,
         config: &WindowConfig,
     ) {
-        let surface = compositor.create_surface(queue_handle, ());
+        let surface = Rc::new(compositor.create_surface(queue_handle, ()));
         let layer_surface = Rc::new(layer_shell.get_layer_surface(
             &surface,
             Some(output),
@@ -244,13 +244,13 @@ impl<'a> WindowingSystem<'a> {
             (),
         ));
 
-        let pointer = seat.get_pointer(queue_handle, ());
+        let pointer = Rc::new(seat.get_pointer(queue_handle, ()));
 
         let binding = event_handler.borrow_mut();
         let binding = binding.state();
         let mut state = binding.borrow_mut();
-        state.set_surface(surface.clone());
-        state.set_layer_surface(layer_surface.clone());
+        state.set_surface(Rc::clone(&surface));
+        state.set_layer_surface(Rc::clone(&layer_surface));
         state.set_pointer(pointer);
 
         Self::configure_layer_surface(&layer_surface, &surface, config);
@@ -305,7 +305,7 @@ impl<'a> WindowingSystem<'a> {
         let (window, component_instance) =
             self.initialize_slint_ui(renderer, &component_definition)?;
 
-        self.window = Some(window.clone());
+        self.window = Some(Rc::clone(&window));
         self.state.borrow_mut().set_window(window);
         self.component_instance = Some(component_instance);
 
@@ -313,17 +313,15 @@ impl<'a> WindowingSystem<'a> {
     }
 
     fn create_renderer(&self) -> Result<FemtoVGRenderer> {
-        let size = self.state.borrow().size();
-        let binding = self.state.borrow();
-        let surface = binding
-            .surface()
-            .ok_or_else(|| anyhow::anyhow!("Surface not initialized"))?;
+        let state_borrow = self.state.borrow();
+        let size = state_borrow.size();
+        let surface = state_borrow.surface().unwrap();
 
         debug!("Creating EGL context with size: {:?}", size);
         let context = EGLContext::builder()
             .with_display_id(self.display.id())
             .with_surface_id(surface.id())
-            .with_size(LayerSize::new(size.width, size.height))
+            .with_size(size)
             .build()
             .map_err(|e| anyhow::anyhow!("Failed to create EGL context: {:?}", e))?;
 
@@ -396,16 +394,16 @@ impl<'a> WindowingSystem<'a> {
             .map_err(|e| anyhow::anyhow!("Failed to run event loop: {}", e))
     }
 
-    pub fn component_instance(&self) -> Option<Rc<ComponentInstance>> {
-        self.component_instance.clone()
+    pub fn component_instance(&self) -> Rc<ComponentInstance> {
+        Rc::clone(self.component_instance.as_ref().unwrap())
     }
 
-    pub fn window(&self) -> Option<Rc<FemtoVGWindow>> {
-        self.window.clone()
+    pub fn window(&self) -> Rc<FemtoVGWindow> {
+        Rc::clone(self.window.as_ref().unwrap())
     }
 
-    pub fn state(&self) -> Rc<RefCell<WindowState>> {
-        self.state.clone()
+    pub fn state(&self) -> Ref<WindowState> {
+        self.state.borrow()
     }
 
     pub const fn display(&self) -> &WlDisplay {

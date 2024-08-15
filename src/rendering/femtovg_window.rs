@@ -17,7 +17,7 @@ pub struct FemtoVGWindow {
 impl FemtoVGWindow {
     pub fn new(renderer: FemtoVGRenderer) -> Rc<Self> {
         Rc::new_cyclic(|weak_self| {
-            let window = Window::new(weak_self.clone() as Weak<dyn WindowAdapter>);
+            let window = Window::new(Weak::clone(weak_self) as Weak<dyn WindowAdapter>);
             Self {
                 window,
                 renderer,
