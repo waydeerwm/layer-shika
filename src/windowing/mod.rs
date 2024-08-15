@@ -300,10 +300,10 @@ impl<'a> WindowingSystem<'a> {
         let component_definition = self
             .config
             .component_definition
-            .clone()
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Component definition not set"))?;
         let (window, component_instance) =
-            self.initialize_slint_ui(renderer, &component_definition)?;
+            self.initialize_slint_ui(renderer, component_definition)?;
 
         self.window = Some(Rc::clone(&window));
         self.state.borrow_mut().set_window(window);
