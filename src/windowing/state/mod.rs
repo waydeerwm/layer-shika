@@ -67,9 +67,10 @@ impl WindowState {
         self.current_pointer_position = logical_position;
     }
 
-    pub fn size(&self) -> PhysicalSize {
+    pub const fn size(&self) -> PhysicalSize {
         self.size
     }
+
     pub fn output_size(&self) -> PhysicalSize {
         self.output_size.get()
     }

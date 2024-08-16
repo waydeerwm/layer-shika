@@ -149,7 +149,6 @@ impl WindowingSystemBuilder {
 pub struct WindowingSystem<'a> {
     state: Rc<RefCell<WindowState>>,
     connection: Rc<Connection>,
-    window: Option<Rc<FemtoVGWindow>>,
     event_queue: Rc<RefCell<EventQueue<WindowState>>>,
     component_instance: Option<Rc<ComponentInstance>>,
     display: WlDisplay,
@@ -184,7 +183,6 @@ impl<'a> WindowingSystem<'a> {
         let mut system = Self {
             state,
             connection,
-            window: None,
             event_queue,
             component_instance: None,
             display,
@@ -295,7 +293,6 @@ impl<'a> WindowingSystem<'a> {
         let (window, component_instance) =
             self.initialize_slint_ui(renderer, component_definition)?;
 
-        self.window = Some(Rc::clone(&window));
         self.state.borrow_mut().set_window(window);
         self.component_instance = Some(component_instance);
 
@@ -348,7 +345,7 @@ impl<'a> WindowingSystem<'a> {
 
     pub fn initialize_event_loop_handler(&mut self) {
         let event_loop_handler = EventLoopHandler::new(
-            Rc::downgrade(self.window.as_ref().unwrap()),
+            Rc::downgrade(self.state.borrow().window().as_ref().unwrap()),
             Rc::downgrade(&self.event_queue),
             Rc::downgrade(&self.connection),
             Rc::downgrade(&self.state),
@@ -377,7 +374,7 @@ impl<'a> WindowingSystem<'a> {
         info!("Starting WindowingSystem main loop");
         self.initialize_event_loop_handler();
         self.setup_event_sources()?;
-        if let Some(window) = &self.window {
+        if let Some(window) = &self.state.borrow().window() {
             window.render_frame_if_dirty();
         }
 
@@ -391,7 +388,7 @@ impl<'a> WindowingSystem<'a> {
     }
 
     pub fn window(&self) -> Rc<FemtoVGWindow> {
-        Rc::clone(self.window.as_ref().unwrap())
+        Rc::clone(self.state().window().as_ref().unwrap())
     }
 
     pub fn state(&self) -> Ref<WindowState> {
