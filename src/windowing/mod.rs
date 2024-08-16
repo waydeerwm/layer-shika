@@ -1,4 +1,4 @@
-use self::{event_handler::WindowEventHandler, event_loop::EventLoopHandler, state::WindowState};
+use self::{event_loop::EventLoopHandler, state::WindowState};
 use crate::{
     bind_globals,
     rendering::{
@@ -29,7 +29,6 @@ use wayland_client::{
     Connection, EventQueue, Proxy, QueueHandle,
 };
 
-mod event_handler;
 mod event_loop;
 mod macros;
 mod state;
@@ -150,9 +149,8 @@ impl WindowingSystemBuilder {
 pub struct WindowingSystem<'a> {
     state: Rc<RefCell<WindowState>>,
     connection: Rc<Connection>,
-    event_handler: Rc<RefCell<WindowEventHandler>>,
     window: Option<Rc<FemtoVGWindow>>,
-    event_queue: Rc<RefCell<EventQueue<WindowEventHandler>>>,
+    event_queue: Rc<RefCell<EventQueue<WindowState>>>,
     component_instance: Option<Rc<ComponentInstance>>,
     display: WlDisplay,
     config: WindowConfig,
@@ -165,7 +163,6 @@ impl<'a> WindowingSystem<'a> {
         info!("Initializing WindowingSystem");
         let connection = Rc::new(Connection::connect_to_env()?);
         let state = Rc::new(RefCell::new(WindowState::new(&config)));
-        let event_handler = Rc::new(RefCell::new(WindowEventHandler::new(Rc::downgrade(&state))));
         let display = connection.display();
         let event_queue = Rc::new(RefCell::new(connection.new_event_queue()));
         let global_list = Self::initialize_registry(&connection)?;
@@ -178,7 +175,7 @@ impl<'a> WindowingSystem<'a> {
             &layer_shell,
             &seat,
             &event_queue.borrow().handle(),
-            &event_handler,
+            &state,
             &config,
         );
 
@@ -187,7 +184,6 @@ impl<'a> WindowingSystem<'a> {
         let mut system = Self {
             state,
             connection,
-            event_handler,
             window: None,
             event_queue,
             component_instance: None,
@@ -199,21 +195,19 @@ impl<'a> WindowingSystem<'a> {
 
         system.wait_for_configure()?;
         system.initialize_renderer_and_ui()?;
-        system.initialize_event_loop_handler();
-        system.setup_event_sources()?;
 
         Ok(system)
     }
 
     fn initialize_registry(connection: &Connection) -> Result<GlobalList> {
-        registry_queue_init::<WindowEventHandler>(connection)
+        registry_queue_init::<WindowState>(connection)
             .map(|(global_list, _)| global_list)
             .context("Failed to initialize registry")
     }
 
     fn bind_globals(
         global_list: &GlobalList,
-        queue_handle: &QueueHandle<WindowEventHandler>,
+        queue_handle: &QueueHandle<WindowState>,
     ) -> Result<(WlCompositor, WlOutput, ZwlrLayerShellV1, WlSeat)> {
         bind_globals!(
             global_list,
@@ -230,8 +224,8 @@ impl<'a> WindowingSystem<'a> {
         output: &WlOutput,
         layer_shell: &ZwlrLayerShellV1,
         seat: &WlSeat,
-        queue_handle: &QueueHandle<WindowEventHandler>,
-        event_handler: &Rc<RefCell<WindowEventHandler>>,
+        queue_handle: &QueueHandle<WindowState>,
+        state: &Rc<RefCell<WindowState>>,
         config: &WindowConfig,
     ) {
         let surface = Rc::new(compositor.create_surface(queue_handle, ()));
@@ -246,9 +240,7 @@ impl<'a> WindowingSystem<'a> {
 
         let pointer = Rc::new(seat.get_pointer(queue_handle, ()));
 
-        let binding = event_handler.borrow_mut();
-        let binding = binding.state();
-        let mut state = binding.borrow_mut();
+        let mut state = state.borrow_mut();
         state.set_surface(Rc::clone(&surface));
         state.set_layer_surface(Rc::clone(&layer_surface));
         state.set_pointer(pointer);
@@ -277,19 +269,17 @@ impl<'a> WindowingSystem<'a> {
 
     fn wait_for_configure(&self) -> Result<()> {
         info!("Waiting for surface to be configured...");
-        loop {
-            self.connection.flush()?;
-            self.event_queue
-                .borrow_mut()
-                .blocking_dispatch(&mut self.event_handler.borrow_mut())
-                .context("Failed to dispatch events")?;
-
-            let state = self.state.borrow();
-            let size = state.output_size();
-            if size.width > 1 && size.height > 1 {
-                info!("Configured output size: {:?}", size);
-                break;
-            }
+        let mut state = self.state.borrow_mut();
+        self.event_queue
+            .borrow_mut()
+            .blocking_dispatch(&mut state)
+            .context("Failed to dispatch events")?;
+        info!("Blocking dispatch completed");
+        let size = state.output_size();
+        if size.width > 1 && size.height > 1 {
+            info!("Configured output size: {:?}", size);
+        } else {
+            return Err(anyhow::anyhow!("Invalid output size: {:?}", size));
         }
         debug!("Surface configuration complete");
         Ok(())
@@ -361,7 +351,7 @@ impl<'a> WindowingSystem<'a> {
             Rc::downgrade(self.window.as_ref().unwrap()),
             Rc::downgrade(&self.event_queue),
             Rc::downgrade(&self.connection),
-            Rc::downgrade(&self.event_handler),
+            Rc::downgrade(&self.state),
         );
 
         self.event_loop_handler = Some(event_loop_handler);
@@ -385,6 +375,8 @@ impl<'a> WindowingSystem<'a> {
 
     pub fn run(&mut self) -> Result<()> {
         info!("Starting WindowingSystem main loop");
+        self.initialize_event_loop_handler();
+        self.setup_event_sources()?;
         if let Some(window) = &self.window {
             window.render_frame_if_dirty();
         }

@@ -2,7 +2,7 @@
 macro_rules! impl_empty_dispatch {
     ($(($t:ty, $u:ty)),+) => {
         $(
-            impl Dispatch<$t, $u> for WindowEventHandler {
+            impl Dispatch<$t, $u> for WindowState {
                 fn event(
                     _state: &mut Self,
                     _proxy: &$t,

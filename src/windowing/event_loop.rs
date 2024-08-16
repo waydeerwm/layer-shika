@@ -6,28 +6,29 @@ use std::rc::{Rc, Weak};
 use wayland_client::{Connection, EventQueue};
 
 use crate::rendering::femtovg_window::FemtoVGWindow;
-use crate::windowing::event_handler::WindowEventHandler;
+
+use super::state::WindowState;
 
 pub struct EventLoopHandler {
     window: Weak<FemtoVGWindow>,
-    wayland_queue: Weak<RefCell<EventQueue<WindowEventHandler>>>,
+    wayland_queue: Weak<RefCell<EventQueue<WindowState>>>,
     connection: Weak<Connection>,
-    event_handler: Weak<RefCell<WindowEventHandler>>,
+    state: Weak<RefCell<WindowState>>,
 }
 
 impl EventLoopHandler {
     pub fn new(
         window: Weak<FemtoVGWindow>,
-        wayland_queue: Weak<RefCell<EventQueue<WindowEventHandler>>>,
+        wayland_queue: Weak<RefCell<EventQueue<WindowState>>>,
         connection: Weak<Connection>,
-        event_handler: Weak<RefCell<WindowEventHandler>>,
+        state: Weak<RefCell<WindowState>>,
     ) -> Self {
         debug!("Creating EventLoopHandler");
         Self {
             window,
             wayland_queue,
             connection,
-            event_handler,
+            state,
         }
     }
 
@@ -35,7 +36,7 @@ impl EventLoopHandler {
         debug!("Setting up Wayland event source");
 
         let wayland_queue = Weak::clone(&self.wayland_queue);
-        let event_handler = Weak::clone(&self.event_handler);
+        let state = Weak::clone(&self.state);
         let connection = self.connection.upgrade().ok_or_else(|| {
             anyhow!("Failed to get Wayland connection reference in Wayland event source")
         })?;
@@ -49,18 +50,13 @@ impl EventLoopHandler {
                         let wayland_queue = wayland_queue
                             .upgrade()
                             .ok_or_else(|| anyhow!("Failed to get Wayland queue reference"))?;
-                        let event_handler = event_handler
+                        let state = state
                             .upgrade()
                             .ok_or_else(|| anyhow!("Failed to get event handler reference"))?;
                         let window = window
                             .upgrade()
                             .ok_or_else(|| anyhow!("Failed to get window reference"))?;
-                        Self::handle_wayland_events(
-                            connection,
-                            &wayland_queue,
-                            &event_handler,
-                            &window,
-                        )?;
+                        Self::handle_wayland_events(connection, &wayland_queue, &state, &window)?;
                         Ok(PostAction::Continue)
                     })();
 
@@ -77,8 +73,8 @@ impl EventLoopHandler {
 
     fn handle_wayland_events(
         connection: &Connection,
-        wayland_queue: &Rc<RefCell<EventQueue<WindowEventHandler>>>,
-        event_handler: &Rc<RefCell<WindowEventHandler>>,
+        wayland_queue: &Rc<RefCell<EventQueue<WindowState>>>,
+        state: &Rc<RefCell<WindowState>>,
         window: &Rc<FemtoVGWindow>,
     ) -> Result<()> {
         connection
@@ -93,7 +89,7 @@ impl EventLoopHandler {
         }
 
         event_queue
-            .dispatch_pending(&mut *event_handler.borrow_mut())
+            .dispatch_pending(&mut *state.borrow_mut())
             .map_err(|e| anyhow!("Failed to dispatch Wayland events: {}", e))?;
 
         slint::platform::update_timers_and_animations();

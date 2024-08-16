@@ -5,13 +5,14 @@ use slint::{LogicalPosition, PhysicalSize};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use wayland_client::protocol::{wl_pointer::WlPointer, wl_surface::WlSurface};
 use crate::rendering::femtovg_window::FemtoVGWindow;
-
 use super::WindowConfig;
+
+pub mod dispatches;
 
 pub struct WindowState {
     surface: Option<Rc<WlSurface>>,
     layer_surface: Option<Rc<ZwlrLayerSurfaceV1>>,
-    size: Cell<PhysicalSize>,
+    size: PhysicalSize,
     output_size: Cell<PhysicalSize>,
     pointer: Option<Rc<WlPointer>>,
     window: Option<Rc<FemtoVGWindow>>,
@@ -26,7 +27,7 @@ impl WindowState {
         Self {
             surface: None,
             layer_surface: None,
-            size: Cell::new(PhysicalSize::default()),
+            size: PhysicalSize::default(),
             output_size: Cell::new(PhysicalSize::default()),
             pointer: None,
             window: None,
@@ -37,9 +38,8 @@ impl WindowState {
         }
     }
 
-    pub fn update_size(&self, width: u32, height: u32) {
+    pub fn update_size(&mut self, width: u32, height: u32) {
         let new_size = PhysicalSize::new(width, height);
-        self.size.set(new_size);
         if let Some(window) = &self.window() {
             info!("Updating window size to {}x{}", width, height);
             window.set_size(slint::WindowSize::Physical(new_size));
@@ -55,6 +55,7 @@ impl WindowState {
         if let Some(s) = self.surface.as_ref() {
             s.commit();
         }
+        self.size = new_size;
     }
 
     pub fn set_current_pointer_position(&mut self, physical_x: f64, physical_y: f64) {
@@ -67,12 +68,12 @@ impl WindowState {
     }
 
     pub fn size(&self) -> PhysicalSize {
-        self.size.get()
+        self.size
     }
     pub fn output_size(&self) -> PhysicalSize {
         self.output_size.get()
     }
-    pub fn current_pointer_position(&self) -> LogicalPosition {
+    pub const fn current_pointer_position(&self) -> LogicalPosition {
         self.current_pointer_position
     }
     pub fn window(&self) -> Option<Rc<FemtoVGWindow>> {
