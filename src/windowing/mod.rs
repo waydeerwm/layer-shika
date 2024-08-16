@@ -10,7 +10,7 @@ use log::{debug, info};
 use slint::{platform::femtovg_renderer::FemtoVGRenderer, ComponentHandle, LogicalPosition};
 use slint_interpreter::{ComponentDefinition, ComponentInstance};
 use smithay_client_toolkit::reexports::{
-    calloop::{self, EventLoop},
+    calloop::{EventLoop, LoopHandle},
     protocols_wlr::layer_shell::v1::client::{
         zwlr_layer_shell_v1::{self, ZwlrLayerShellV1},
         zwlr_layer_surface_v1::{Anchor, KeyboardInteractivity, ZwlrLayerSurfaceV1},
@@ -137,7 +137,7 @@ impl WindowingSystemBuilder {
         self
     }
 
-    pub fn build(self) -> Result<WindowingSystem<'static>> {
+    pub fn build(self) -> Result<WindowingSystem> {
         if self.config.component_definition.is_none() {
             return Err(anyhow::anyhow!("Slint component not set"));
         }
@@ -146,24 +146,25 @@ impl WindowingSystemBuilder {
     }
 }
 
-pub struct WindowingSystem<'a> {
+pub struct WindowingSystem {
     state: Rc<RefCell<WindowState>>,
     connection: Rc<Connection>,
     event_queue: Rc<RefCell<EventQueue<WindowState>>>,
     component_instance: Option<Rc<ComponentInstance>>,
     display: WlDisplay,
     config: WindowConfig,
-    event_loop: EventLoop<'a, ()>,
+    event_loop: EventLoop<'static, ()>,
     event_loop_handler: Option<EventLoopHandler>,
 }
 
-impl<'a> WindowingSystem<'a> {
+impl WindowingSystem {
     fn new(config: WindowConfig) -> Result<Self> {
         info!("Initializing WindowingSystem");
         let connection = Rc::new(Connection::connect_to_env()?);
         let state = Rc::new(RefCell::new(WindowState::new(&config)));
         let display = connection.display();
         let event_queue = Rc::new(RefCell::new(connection.new_event_queue()));
+
         let global_list = Self::initialize_registry(&connection)?;
         let (compositor, output, layer_shell, seat) =
             Self::bind_globals(&global_list, &event_queue.borrow().handle())?;
@@ -366,7 +367,7 @@ impl<'a> WindowingSystem<'a> {
         Ok(())
     }
 
-    pub fn event_loop_handle(&self) -> calloop::LoopHandle<'a, ()> {
+    pub fn event_loop_handle(&self) -> LoopHandle<'static, ()> {
         self.event_loop.handle()
     }
 
