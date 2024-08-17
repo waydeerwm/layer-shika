@@ -143,21 +143,17 @@ impl Dispatch<WlPointer, ()> for WindowState {
                 state: button_state,
                 ..
             } => {
-                let is_press =
-                    matches!(button_state, WEnum::Value(wl_pointer::ButtonState::Pressed));
-                let current_position = state.current_pointer_position();
+                let event = match button_state {
+                    WEnum::Value(wl_pointer::ButtonState::Pressed) => WindowEvent::PointerPressed {
+                        button: PointerEventButton::Left,
+                        position: state.current_pointer_position(),
+                    },
+                    _ => WindowEvent::PointerReleased {
+                        button: PointerEventButton::Left,
+                        position: state.current_pointer_position(),
+                    },
+                };
                 if let Some(window) = state.window() {
-                    let event = if is_press {
-                        WindowEvent::PointerPressed {
-                            button: PointerEventButton::Left,
-                            position: current_position,
-                        }
-                    } else {
-                        WindowEvent::PointerReleased {
-                            button: PointerEventButton::Left,
-                            position: current_position,
-                        }
-                    };
                     window.dispatch_event(event);
                 }
             }

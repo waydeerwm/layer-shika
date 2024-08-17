@@ -66,20 +66,14 @@ impl EventLoopHandler {
         state: &Rc<RefCell<WindowState>>,
         window: &Rc<FemtoVGWindow>,
     ) -> Result<()> {
-        connection
-            .flush()
-            .map_err(|e| anyhow!("Failed to flush connection: {}", e))?;
+        connection.flush()?;
 
         let mut event_queue = wayland_queue.borrow_mut();
         if let Some(guard) = event_queue.prepare_read() {
-            guard
-                .read()
-                .map_err(|e| anyhow!("Failed to read Wayland events: {}", e))?;
+            guard.read()?;
         }
 
-        event_queue
-            .blocking_dispatch(&mut state.borrow_mut())
-            .map_err(|e| anyhow!("Failed to dispatch Wayland events: {}", e))?;
+        event_queue.blocking_dispatch(&mut state.borrow_mut())?;
 
         slint::platform::update_timers_and_animations();
         window.render_frame_if_dirty();

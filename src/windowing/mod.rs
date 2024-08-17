@@ -138,11 +138,10 @@ impl WindowingSystemBuilder {
     }
 
     pub fn build(self) -> Result<WindowingSystem> {
-        if self.config.component_definition.is_none() {
-            return Err(anyhow::anyhow!("Slint component not set"));
+        match self.config.component_definition {
+            Some(_) => WindowingSystem::new(self.config),
+            None => Err(anyhow::anyhow!("Slint component not set")),
         }
-
-        WindowingSystem::new(self.config)
     }
 }
 
@@ -271,17 +270,17 @@ impl WindowingSystem {
         let mut state = self.state.borrow_mut();
         self.event_queue
             .borrow_mut()
-            .blocking_dispatch(&mut state)
-            .context("Failed to dispatch events")?;
+            .blocking_dispatch(&mut state)?;
         info!("Blocking dispatch completed");
+
         let size = state.output_size();
-        if size.width > 1 && size.height > 1 {
-            info!("Configured output size: {:?}", size);
-        } else {
-            return Err(anyhow::anyhow!("Invalid output size: {:?}", size));
+        match (size.width, size.height) {
+            (w, h) if w > 1 && h > 1 => {
+                info!("Configured output size: {:?}", size);
+                Ok(())
+            }
+            _ => Err(anyhow::anyhow!("Invalid output size: {:?}", size)),
         }
-        debug!("Surface configuration complete");
-        Ok(())
     }
 
     fn initialize_renderer_and_ui(&mut self) -> Result<()> {
