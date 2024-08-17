@@ -347,10 +347,9 @@ impl WindowingSystem {
 
     pub fn initialize_event_loop_handler(&mut self) {
         let event_loop_handler = EventLoopHandler::new(
-            Rc::downgrade(self.state.borrow().window().as_ref().unwrap()),
-            Rc::downgrade(&self.event_queue),
-            Rc::downgrade(&self.connection),
-            Rc::downgrade(&self.state),
+            Rc::clone(&self.event_queue),
+            Rc::clone(&self.connection),
+            Rc::clone(&self.state),
         );
 
         self.event_loop_handler = Some(event_loop_handler);
