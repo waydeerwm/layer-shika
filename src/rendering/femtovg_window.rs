@@ -6,10 +6,16 @@ use slint::{
 use std::cell::Cell;
 use std::rc::{Rc, Weak};
 
+#[derive(Clone, Copy)]
+pub enum RenderState {
+    Clean,
+    Dirty,
+}
+
 pub struct FemtoVGWindow {
     window: Window,
     renderer: FemtoVGRenderer,
-    is_dirty: Cell<bool>,
+    render_state: Cell<RenderState>,
     size: Cell<PhysicalSize>,
     scale_factor: Cell<f32>,
 }
@@ -21,7 +27,7 @@ impl FemtoVGWindow {
             Self {
                 window,
                 renderer,
-                is_dirty: Cell::default(),
+                render_state: Cell::new(RenderState::Clean),
                 size: Cell::new(PhysicalSize::default()),
                 scale_factor: Cell::new(1.),
             }
@@ -29,12 +35,13 @@ impl FemtoVGWindow {
     }
 
     pub fn render_frame_if_dirty(&self) {
-        if self.is_dirty.get() {
-            match self.renderer.render() {
-                Ok(()) => {} //log::debug!("Frame rendered successfully"),
-                Err(e) => log::error!("Error rendering frame: {}", e),
+        if matches!(
+            self.render_state.replace(RenderState::Clean),
+            RenderState::Dirty
+        ) {
+            if let Err(e) = self.renderer.render() {
+                log::error!("Error rendering frame: {}", e);
             }
-            self.is_dirty.set(false);
         }
     }
 
@@ -71,7 +78,7 @@ impl WindowAdapter for FemtoVGWindow {
     }
 
     fn request_redraw(&self) {
-        self.is_dirty.set(true);
+        self.render_state.set(RenderState::Dirty);
     }
 }
 

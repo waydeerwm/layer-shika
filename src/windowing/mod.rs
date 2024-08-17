@@ -291,6 +291,7 @@ impl WindowingSystem {
             .component_definition
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Component definition not set"))?;
+
         let (window, component_instance) =
             self.initialize_slint_ui(renderer, component_definition)?;
 
