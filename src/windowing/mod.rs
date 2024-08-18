@@ -231,7 +231,7 @@ impl WindowingSystem {
         Ok(slint_component)
     }
 
-    pub fn initialize_event_loop_handler(&mut self) {
+    fn initialize_event_loop_handler(&mut self) {
         let event_loop_handler = EventLoopHandler::new(
             Rc::clone(&self.event_queue),
             Rc::clone(&self.connection),
@@ -241,7 +241,7 @@ impl WindowingSystem {
         self.event_loop_handler = event_loop_handler;
     }
 
-    pub fn setup_event_sources(&self) -> Result<()> {
+    fn setup_event_sources(&self) -> Result<()> {
         let loop_handle = self.event_loop.handle();
         self.event_loop_handler
             .setup_wayland_event_source(&loop_handle)?;
