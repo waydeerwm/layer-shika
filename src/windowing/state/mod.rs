@@ -1,4 +1,4 @@
-use std::{borrow::{Borrow, BorrowMut}, rc::Rc};
+use std::{rc::Rc};
 use log::info;
 use slint::{LogicalPosition, PhysicalSize, ComponentHandle};
 use slint_interpreter::{ComponentDefinition, ComponentInstance};
@@ -131,6 +131,6 @@ impl WindowState {
     }
 
     pub fn component_instance(&self) -> &ComponentInstance {
-        &self.component_instance.as_ref().unwrap()
+        self.component_instance.as_ref().unwrap()
     }
 }

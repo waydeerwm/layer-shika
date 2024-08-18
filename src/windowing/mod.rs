@@ -192,8 +192,6 @@ impl WindowingSystem {
         femtovg_window.set_scale_factor(config.scale_factor);
         femtovg_window.set_position(LogicalPosition::new(0., 0.));
 
-        //debug!("Setting up custom Slint platform");
-
         debug!("Creating Slint component instance");
 
         state.set_window(Rc::clone(&femtovg_window));
@@ -208,13 +206,9 @@ impl WindowingSystem {
     pub fn run(&mut self) -> Result<()> {
         info!("Starting WindowingSystem main loop");
         if let Some(window) = &self.state.window() {
-            /*let platform = CustomSlintPlatform::new(window);
-            slint::platform::set_platform(Box::new(platform))
-                .map_err(|e| anyhow::anyhow!("Failed to set platform: {:?}", e))?;
-            */
             window.render_frame_if_dirty();
         }
-        self.state.show_component();
+        self.state.show_component()?;
         self.setup_wayland_event_source();
 
         self.event_loop
