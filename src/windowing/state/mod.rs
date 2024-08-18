@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::rc::Rc;
 use log::info;
 use slint::{LogicalPosition, PhysicalSize};
@@ -13,7 +12,7 @@ pub struct WindowState {
     surface: Option<Rc<WlSurface>>,
     layer_surface: Option<Rc<ZwlrLayerSurfaceV1>>,
     size: PhysicalSize,
-    output_size: Cell<PhysicalSize>,
+    output_size: PhysicalSize,
     pointer: Option<Rc<WlPointer>>,
     window: Option<Rc<FemtoVGWindow>>,
     current_pointer_position: LogicalPosition,
@@ -28,7 +27,7 @@ impl WindowState {
             surface: None,
             layer_surface: None,
             size: PhysicalSize::default(),
-            output_size: Cell::new(PhysicalSize::default()),
+            output_size: PhysicalSize::default(),
             pointer: None,
             window: None,
             current_pointer_position: LogicalPosition::default(),
@@ -71,9 +70,6 @@ impl WindowState {
         self.size
     }
 
-    pub fn output_size(&self) -> PhysicalSize {
-        self.output_size.get()
-    }
     pub const fn current_pointer_position(&self) -> LogicalPosition {
         self.current_pointer_position
     }
@@ -92,9 +88,14 @@ impl WindowState {
         self.height
     }
 
-    pub fn set_output_size(&self, width: u32, height: u32) {
-        self.output_size.set(PhysicalSize::new(width, height));
+    pub fn set_output_size(&mut self, output_size: PhysicalSize) {
+        self.output_size = output_size;
     }
+
+    pub const fn output_size(&self) -> PhysicalSize {
+        self.output_size
+    }
+
     pub fn set_window(&mut self, window: Rc<FemtoVGWindow>) {
         self.window = Some(window);
     }

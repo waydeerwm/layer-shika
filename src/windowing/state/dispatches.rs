@@ -1,6 +1,9 @@
 use crate::impl_empty_dispatch;
 use log::info;
-use slint::platform::{PointerEventButton, WindowEvent};
+use slint::{
+    platform::{PointerEventButton, WindowEvent},
+    PhysicalSize,
+};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::{
     zwlr_layer_shell_v1::ZwlrLayerShellV1,
     zwlr_layer_surface_v1::{self, ZwlrLayerSurfaceV1},
@@ -67,7 +70,7 @@ impl Dispatch<WlOutput, ()> for WindowState {
                 info!("WlOutput size changed to {}x{}", width, height);
                 let width = width.try_into().unwrap_or_default();
                 let height = height.try_into().unwrap_or_default();
-                state.set_output_size(width, height);
+                state.set_output_size(PhysicalSize::new(width, height));
             }
             wl_output::Event::Description { ref description } => {
                 info!("WlOutput description: {:?}", description);
