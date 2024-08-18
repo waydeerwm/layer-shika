@@ -40,7 +40,6 @@ pub struct WindowingSystem {
     connection: Rc<Connection>,
     event_queue: Rc<RefCell<EventQueue<WindowState>>>,
     component_instance: Rc<ComponentInstance>,
-    display: WlDisplay,
     event_loop: EventLoop<'static, ()>,
     event_loop_handler: EventLoopHandler,
 }
@@ -83,7 +82,6 @@ impl WindowingSystem {
             connection,
             event_queue,
             component_instance,
-            display,
             event_loop,
             event_loop_handler,
         })
@@ -278,9 +276,5 @@ impl WindowingSystem {
 
     pub fn state(&self) -> Ref<WindowState> {
         self.state.borrow()
-    }
-
-    pub const fn display(&self) -> &WlDisplay {
-        &self.display
     }
 }
