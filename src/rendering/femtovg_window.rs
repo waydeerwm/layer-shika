@@ -6,7 +6,6 @@ use slint::{
 use std::cell::Cell;
 use std::rc::{Rc, Weak};
 
-#[derive(Clone, Copy)]
 pub enum RenderState {
     Clean,
     Dirty,
