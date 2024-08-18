@@ -1,4 +1,4 @@
-use self::{event_loop::EventLoopHandler, state::WindowState};
+use self::state::WindowState;
 use crate::{
     bind_globals,
     rendering::{
@@ -7,19 +7,16 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use config::WindowConfig;
-use log::{debug, info};
+use log::{debug, error, info};
 use slint::{platform::femtovg_renderer::FemtoVGRenderer, ComponentHandle, LogicalPosition};
 use slint_interpreter::ComponentInstance;
 use smithay_client_toolkit::reexports::{
-    calloop::{EventLoop, LoopHandle},
+    calloop::{self, EventLoop, Interest, LoopHandle, Mode, PostAction},
     protocols_wlr::layer_shell::v1::client::{
         zwlr_layer_shell_v1::ZwlrLayerShellV1, zwlr_layer_surface_v1::ZwlrLayerSurfaceV1,
     },
 };
-use std::{
-    cell::{Ref, RefCell},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 use wayland_client::{
     globals::{registry_queue_init, GlobalList},
     protocol::{
@@ -31,30 +28,29 @@ use wayland_client::{
 
 pub mod builder;
 mod config;
-mod event_loop;
 mod macros;
 mod state;
 
 pub struct WindowingSystem {
-    state: Rc<RefCell<WindowState>>,
+    state: WindowState,
     connection: Rc<Connection>,
     event_queue: Rc<RefCell<EventQueue<WindowState>>>,
     component_instance: Rc<ComponentInstance>,
-    event_loop: EventLoop<'static, ()>,
-    event_loop_handler: EventLoopHandler,
+    event_loop: EventLoop<'static, WindowState>,
 }
 
 impl WindowingSystem {
     fn new(config: &WindowConfig) -> Result<Self> {
         info!("Initializing WindowingSystem");
         let connection = Rc::new(Connection::connect_to_env()?);
-        let state = Rc::new(RefCell::new(WindowState::new(config)));
-        let display = connection.display();
-        let event_queue = Rc::new(RefCell::new(connection.new_event_queue()));
 
         let global_list = Self::initialize_registry(&connection)?;
+        let event_queue = Rc::new(RefCell::new(connection.new_event_queue()));
+
         let (compositor, output, layer_shell, seat) =
             Self::bind_globals(&global_list, &event_queue.borrow().handle())?;
+
+        let mut state = WindowState::new(config);
 
         Self::setup_surface(
             &compositor,
@@ -62,20 +58,16 @@ impl WindowingSystem {
             &layer_shell,
             &seat,
             &event_queue.borrow().handle(),
-            &state,
+            &mut state,
             config,
         );
 
-        Self::wait_for_configure(&event_queue, &state)?;
+        Self::wait_for_configure(&event_queue, &mut state)?;
+        let display = connection.display();
 
-        let component_instance = Self::initialize_renderer_and_ui(&state, &display, config)?;
+        let component_instance = Self::initialize_renderer_and_ui(&mut state, &display, config)?;
 
         let event_loop = EventLoop::try_new().context("Failed to create event loop")?;
-        let event_loop_handler = EventLoopHandler::new(
-            Rc::clone(&event_queue),
-            Rc::clone(&connection),
-            Rc::clone(&state),
-        );
 
         Ok(Self {
             state,
@@ -83,7 +75,6 @@ impl WindowingSystem {
             event_queue,
             component_instance,
             event_loop,
-            event_loop_handler,
         })
     }
 
@@ -113,7 +104,7 @@ impl WindowingSystem {
         layer_shell: &ZwlrLayerShellV1,
         seat: &WlSeat,
         queue_handle: &QueueHandle<WindowState>,
-        state: &Rc<RefCell<WindowState>>,
+        state: &mut WindowState,
         config: &WindowConfig,
     ) {
         let surface = Rc::new(compositor.create_surface(queue_handle, ()));
@@ -128,7 +119,6 @@ impl WindowingSystem {
 
         let pointer = Rc::new(seat.get_pointer(queue_handle, ()));
 
-        let mut state = state.borrow_mut();
         state.set_surface(Rc::clone(&surface));
         state.set_layer_surface(Rc::clone(&layer_surface));
         state.set_pointer(pointer);
@@ -157,13 +147,12 @@ impl WindowingSystem {
 
     fn wait_for_configure(
         event_queue: &Rc<RefCell<EventQueue<WindowState>>>,
-        state: &Rc<RefCell<WindowState>>,
+        state: &mut WindowState,
     ) -> Result<()> {
         info!("Waiting for surface to be configured...");
-        let mut state = state.borrow_mut();
         event_queue
             .borrow_mut()
-            .blocking_dispatch(&mut state)
+            .blocking_dispatch(state)
             .context("Failed to dispatch events")?;
         info!("Blocking dispatch completed");
         let size = state.output_size();
@@ -176,13 +165,9 @@ impl WindowingSystem {
         Ok(())
     }
 
-    fn create_renderer(
-        state: &Rc<RefCell<WindowState>>,
-        display: &WlDisplay,
-    ) -> Result<FemtoVGRenderer> {
-        let state_borrow = state.borrow();
-        let size = state_borrow.size();
-        let surface = state_borrow.surface().unwrap();
+    fn create_renderer(state: &WindowState, display: &WlDisplay) -> Result<FemtoVGRenderer> {
+        let size = state.size();
+        let surface = state.surface().unwrap();
 
         debug!("Creating EGL context with size: {:?}", size);
         let context = EGLContext::builder()
@@ -197,7 +182,7 @@ impl WindowingSystem {
     }
 
     fn initialize_renderer_and_ui(
-        state: &Rc<RefCell<WindowState>>,
+        state: &mut WindowState,
         display: &WlDisplay,
         config: &WindowConfig,
     ) -> Result<Rc<ComponentInstance>> {
@@ -208,7 +193,7 @@ impl WindowingSystem {
             .ok_or_else(|| anyhow::anyhow!("Component definition not set"))?;
 
         let femtovg_window = FemtoVGWindow::new(renderer);
-        let size = state.borrow().size();
+        let size = state.size();
         info!("Initializing UI with size: {:?}", size);
         femtovg_window.set_size(slint::WindowSize::Physical(size));
         femtovg_window.set_scale_factor(config.scale_factor);
@@ -226,43 +211,29 @@ impl WindowingSystem {
             .show()
             .map_err(|e| anyhow::anyhow!("Failed to show component: {:?}", e))?;
 
-        state.borrow_mut().set_window(Rc::clone(&femtovg_window));
+        state.set_window(Rc::clone(&femtovg_window));
 
         Ok(slint_component)
     }
 
-    fn initialize_event_loop_handler(&mut self) {
-        let event_loop_handler = EventLoopHandler::new(
-            Rc::clone(&self.event_queue),
-            Rc::clone(&self.connection),
-            Rc::clone(&self.state),
-        );
-
-        self.event_loop_handler = event_loop_handler;
-    }
-
     fn setup_event_sources(&self) -> Result<()> {
-        let loop_handle = self.event_loop.handle();
-        self.event_loop_handler
-            .setup_wayland_event_source(&loop_handle)?;
-
+        self.setup_wayland_event_source()?;
         Ok(())
     }
 
-    pub fn event_loop_handle(&self) -> LoopHandle<'static, ()> {
+    pub fn event_loop_handle(&self) -> LoopHandle<'static, WindowState> {
         self.event_loop.handle()
     }
 
     pub fn run(&mut self) -> Result<()> {
         info!("Starting WindowingSystem main loop");
-        self.initialize_event_loop_handler();
         self.setup_event_sources()?;
-        if let Some(window) = &self.state.borrow().window() {
+        if let Some(window) = &self.state.window() {
             window.render_frame_if_dirty();
         }
 
         self.event_loop
-            .run(None, &mut (), |()| {})
+            .run(None, &mut self.state, |_shared_state| {})
             .map_err(|e| anyhow::anyhow!("Failed to run event loop: {}", e))
     }
 
@@ -274,7 +245,48 @@ impl WindowingSystem {
         Rc::clone(self.state().window().as_ref().unwrap())
     }
 
-    pub fn state(&self) -> Ref<WindowState> {
-        self.state.borrow()
+    pub const fn state(&self) -> &WindowState {
+        &self.state
+    }
+
+    pub fn setup_wayland_event_source(&self) -> Result<()> {
+        debug!("Setting up Wayland event source");
+
+        let wayland_queue = Rc::clone(&self.event_queue);
+        let connection = Rc::clone(&self.connection);
+
+        self.event_loop
+            .handle()
+            .insert_source(
+                calloop::generic::Generic::new(connection, Interest::READ, Mode::Level),
+                move |_, connection, shared_state| {
+                    let result: Result<PostAction, anyhow::Error> = (|| {
+                        connection.flush()?;
+                        let mut event_queue = wayland_queue.borrow_mut();
+                        if let Some(guard) = event_queue.prepare_read() {
+                            guard.read()?;
+                        }
+
+                        event_queue.dispatch_pending(shared_state)?;
+
+                        slint::platform::update_timers_and_animations();
+                        shared_state
+                            .window()
+                            .as_ref()
+                            .unwrap()
+                            .render_frame_if_dirty();
+
+                        Ok(PostAction::Continue)
+                    })();
+
+                    result.map_err(|e| {
+                        error!("Error handling Wayland events: {}", e);
+                        std::io::Error::new(std::io::ErrorKind::Other, e)
+                    })
+                },
+            )
+            .map_err(|e| anyhow::anyhow!("Failed to insert Wayland event source: {}", e))?;
+
+        Ok(())
     }
 }
