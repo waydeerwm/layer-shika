@@ -1,14 +1,18 @@
-use std::rc::Rc;
+use std::{borrow::{Borrow, BorrowMut}, rc::Rc};
 use log::info;
-use slint::{LogicalPosition, PhysicalSize};
+use slint::{LogicalPosition, PhysicalSize, ComponentHandle};
+use slint_interpreter::{ComponentDefinition, ComponentInstance};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use wayland_client::protocol::{wl_pointer::WlPointer, wl_surface::WlSurface};
-use crate::rendering::femtovg_window::FemtoVGWindow;
+use crate::rendering::{femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform};
 use super::WindowConfig;
+use anyhow::Result;
 
 pub mod dispatches;
 
 pub struct WindowState {
+    component_definition: ComponentDefinition,
+    component_instance: Option<ComponentInstance>,
     surface: Option<Rc<WlSurface>>,
     layer_surface: Option<Rc<ZwlrLayerSurfaceV1>>,
     size: PhysicalSize,
@@ -22,7 +26,7 @@ pub struct WindowState {
 }
 
 impl WindowState {
-    pub fn new(config: &WindowConfig) -> Self {
+    pub fn new(config: &mut WindowConfig) -> Self {
         Self {
             surface: None,
             layer_surface: None,
@@ -34,7 +38,22 @@ impl WindowState {
             scale_factor: config.scale_factor,
             height: config.height,
             exclusive_zone: config.exclusive_zone,
+            component_definition: config.component_definition.take().unwrap(),
+            component_instance: None,
         }
+    }
+
+    pub fn show_component(&mut self) -> Result<()> {
+        if let Some(window) = &self.window {
+            let platform = CustomSlintPlatform::new(Rc::clone(window));
+            slint::platform::set_platform(Box::new(platform))
+                .map_err(|e| anyhow::anyhow!("Failed to set platform: {:?}", e))?;
+        }
+
+        self.component_instance = Some(self.component_definition.create()?);
+
+        self.component_instance.as_ref().unwrap().show()?;
+        Ok(())
     }
 
     pub fn update_size(&mut self, width: u32, height: u32) {
@@ -109,5 +128,9 @@ impl WindowState {
     }
     pub fn set_pointer(&mut self, pointer: Rc<WlPointer>) {
         self.pointer = Some(pointer);
+    }
+
+    pub fn component_instance(&self) -> &ComponentInstance {
+        &self.component_instance.as_ref().unwrap()
     }
 }

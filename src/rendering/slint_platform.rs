@@ -1,32 +1,24 @@
+use anyhow::Result;
 use slint::{
     platform::{Platform, WindowAdapter},
     PlatformError,
 };
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 
 use super::femtovg_window::FemtoVGWindow;
 
 pub struct CustomSlintPlatform {
-    window: Weak<FemtoVGWindow>,
+    window: Rc<FemtoVGWindow>,
 }
 
 impl CustomSlintPlatform {
-    pub fn new(window: &Rc<FemtoVGWindow>) -> Self {
-        Self {
-            window: Rc::downgrade(window),
-        }
+    pub fn new(window: Rc<FemtoVGWindow>) -> Self {
+        Self { window }
     }
 }
 
 impl Platform for CustomSlintPlatform {
-    fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, PlatformError> {
-        self.window
-            .upgrade()
-            .map(|window| -> Rc<dyn WindowAdapter> { window })
-            .ok_or_else(|| {
-                PlatformError::Other(
-                    "Failed to create window adapter: window no longer exists".into(),
-                )
-            })
+    fn create_window_adapter(&self) -> Result<Rc<(dyn WindowAdapter + 'static)>, PlatformError> {
+        Result::Ok(Rc::clone(&self.window) as Rc<dyn WindowAdapter>)
     }
 }

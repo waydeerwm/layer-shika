@@ -35,12 +35,11 @@ pub struct WindowingSystem {
     state: WindowState,
     connection: Rc<Connection>,
     event_queue: EventQueue<WindowState>,
-    component_instance: Rc<ComponentInstance>,
     event_loop: EventLoop<'static, WindowState>,
 }
 
 impl WindowingSystem {
-    fn new(config: &WindowConfig) -> Result<Self> {
+    fn new(config: &mut WindowConfig) -> Result<Self> {
         info!("Initializing WindowingSystem");
         let connection = Rc::new(Connection::connect_to_env()?);
 
@@ -65,7 +64,7 @@ impl WindowingSystem {
         Self::wait_for_configure(&mut event_queue, &mut state)?;
         let display = connection.display();
 
-        let component_instance = Self::initialize_renderer_and_ui(&mut state, &display, config)?;
+        Self::initialize_renderer(&mut state, &display, config)?;
 
         let event_loop = EventLoop::try_new().context("Failed to create event loop")?;
 
@@ -73,7 +72,6 @@ impl WindowingSystem {
             state,
             connection,
             event_queue,
-            component_instance,
             event_loop,
         })
     }
@@ -180,16 +178,12 @@ impl WindowingSystem {
         FemtoVGRenderer::new(context).context("Failed to create FemtoVGRenderer")
     }
 
-    fn initialize_renderer_and_ui(
+    fn initialize_renderer(
         state: &mut WindowState,
         display: &WlDisplay,
         config: &WindowConfig,
-    ) -> Result<Rc<ComponentInstance>> {
+    ) -> Result<()> {
         let renderer = Self::create_renderer(state, display)?;
-        let component_definition = config
-            .component_definition
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Component definition not set"))?;
 
         let femtovg_window = FemtoVGWindow::new(renderer);
         let size = state.size();
@@ -198,21 +192,13 @@ impl WindowingSystem {
         femtovg_window.set_scale_factor(config.scale_factor);
         femtovg_window.set_position(LogicalPosition::new(0., 0.));
 
-        debug!("Setting up custom Slint platform");
-        let platform = CustomSlintPlatform::new(&femtovg_window);
-        slint::platform::set_platform(Box::new(platform))
-            .map_err(|e| anyhow::anyhow!("Failed to set platform: {:?}", e))?;
+        //debug!("Setting up custom Slint platform");
 
         debug!("Creating Slint component instance");
-        let slint_component: Rc<ComponentInstance> = Rc::new(component_definition.create()?);
-
-        slint_component
-            .show()
-            .map_err(|e| anyhow::anyhow!("Failed to show component: {:?}", e))?;
 
         state.set_window(Rc::clone(&femtovg_window));
 
-        Ok(slint_component)
+        Ok(())
     }
 
     pub fn event_loop_handle(&self) -> LoopHandle<'static, WindowState> {
@@ -222,8 +208,13 @@ impl WindowingSystem {
     pub fn run(&mut self) -> Result<()> {
         info!("Starting WindowingSystem main loop");
         if let Some(window) = &self.state.window() {
+            /*let platform = CustomSlintPlatform::new(window);
+            slint::platform::set_platform(Box::new(platform))
+                .map_err(|e| anyhow::anyhow!("Failed to set platform: {:?}", e))?;
+            */
             window.render_frame_if_dirty();
         }
+        self.state.show_component();
         self.setup_wayland_event_source();
 
         self.event_loop
@@ -256,8 +247,8 @@ impl WindowingSystem {
         );
     }
 
-    pub fn component_instance(&self) -> Rc<ComponentInstance> {
-        Rc::clone(&self.component_instance)
+    pub fn component_instance(&self) -> &ComponentInstance {
+        self.state.component_instance()
     }
 
     pub fn window(&self) -> Rc<FemtoVGWindow> {

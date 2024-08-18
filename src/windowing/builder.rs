@@ -83,9 +83,9 @@ impl WindowingSystemBuilder {
         self
     }
 
-    pub fn build(self) -> Result<WindowingSystem> {
+    pub fn build(&mut self) -> Result<WindowingSystem> {
         match self.config.component_definition {
-            Some(_) => WindowingSystem::new(&self.config),
+            Some(_) => WindowingSystem::new(&mut self.config),
             None => Err(anyhow::anyhow!("Slint component not set")),
         }
     }
