@@ -74,7 +74,7 @@ impl EGLContextBuilder {
             .ok_or_else(|| anyhow!("Surface ID is required"))?;
         let size = self.size.ok_or_else(|| anyhow!("Size is required"))?;
 
-        let display_handle = create_wayland_display_handle(&display_id);
+        let display_handle = create_wayland_display_handle(&display_id)?;
         let glutin_display = unsafe { Display::new(display_handle) }?;
 
         let config_template = self.config_template.unwrap_or_default();
@@ -85,7 +85,7 @@ impl EGLContextBuilder {
 
         let context = create_context(&glutin_display, &config, context_attributes)?;
 
-        let surface_handle = create_surface_handle(&surface_id);
+        let surface_handle = create_surface_handle(&surface_id)?;
         let surface = create_surface(&glutin_display, &config, surface_handle, size)?;
 
         let context = context
@@ -109,11 +109,11 @@ impl EGLContext {
     }
 }
 
-fn create_wayland_display_handle(display_id: &ObjectId) -> RawDisplayHandle {
+fn create_wayland_display_handle(display_id: &ObjectId) -> Result<RawDisplayHandle> {
     let display = NonNull::new(display_id.as_ptr().cast::<c_void>())
-        .expect("NonNull pointer creation failed");
+        .ok_or_else(|| anyhow!("Failed to create NonNull pointer for display"))?;
     let handle = WaylandDisplayHandle::new(display);
-    RawDisplayHandle::Wayland(handle)
+    Ok(RawDisplayHandle::Wayland(handle))
 }
 
 fn select_config(
@@ -134,11 +134,11 @@ fn create_context(
         .map_err(|e| anyhow!("Failed to create context: {}", e))
 }
 
-fn create_surface_handle(surface_id: &ObjectId) -> RawWindowHandle {
+fn create_surface_handle(surface_id: &ObjectId) -> Result<RawWindowHandle> {
     let surface = NonNull::new(surface_id.as_ptr().cast::<c_void>())
-        .expect("NonNull pointer creation failed");
+        .ok_or_else(|| anyhow!("Failed to create NonNull pointer for surface"))?;
     let handle = WaylandWindowHandle::new(surface);
-    RawWindowHandle::Wayland(handle)
+    Ok(RawWindowHandle::Wayland(handle))
 }
 
 fn create_surface(
@@ -147,11 +147,17 @@ fn create_surface(
     surface_handle: RawWindowHandle,
     size: PhysicalSize,
 ) -> Result<Surface<WindowSurface>> {
-    let attrs = SurfaceAttributesBuilder::<WindowSurface>::new().build(
-        surface_handle,
-        NonZeroU32::new(size.width).unwrap(),
-        NonZeroU32::new(size.height).unwrap(),
-    );
+    let Some(width) = NonZeroU32::new(size.width) else {
+        return Err(anyhow!("Width cannot be zero"));
+    };
+
+    let Some(height) = NonZeroU32::new(size.height) else {
+        return Err(anyhow!("Height cannot be zero"));
+    };
+
+    let attrs =
+        SurfaceAttributesBuilder::<WindowSurface>::new().build(surface_handle, width, height);
+
     unsafe { glutin_display.create_window_surface(config, &attrs) }
         .map_err(|e| anyhow!("Failed to create window surface: {}", e))
 }

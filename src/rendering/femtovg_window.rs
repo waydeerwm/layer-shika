@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use log::info;
 use slint::{
     platform::{femtovg_renderer::FemtoVGRenderer, Renderer, WindowAdapter, WindowEvent},
@@ -33,15 +34,16 @@ impl FemtoVGWindow {
         })
     }
 
-    pub fn render_frame_if_dirty(&self) {
+    pub fn render_frame_if_dirty(&self) -> Result<()> {
         if matches!(
             self.render_state.replace(RenderState::Clean),
             RenderState::Dirty
         ) {
-            if let Err(e) = self.renderer.render() {
-                log::error!("Error rendering frame: {}", e);
-            }
+            self.renderer
+                .render()
+                .map_err(|e| anyhow!("Error rendering frame: {}", e))?;
         }
+        Ok(())
     }
 
     pub fn set_scale_factor(&self, scale_factor: f32) {

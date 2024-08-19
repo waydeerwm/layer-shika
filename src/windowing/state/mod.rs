@@ -1,4 +1,4 @@
-use std::{rc::Rc};
+use std::rc::Rc;
 use log::info;
 use slint::{LogicalPosition, PhysicalSize, ComponentHandle};
 use slint_interpreter::{ComponentDefinition, ComponentInstance};
@@ -26,8 +26,13 @@ pub struct WindowState {
 }
 
 impl WindowState {
-    pub fn new(config: &mut WindowConfig) -> Self {
-        Self {
+    pub fn new(config: &mut WindowConfig) -> Result<Self> {
+        let component_definition = config
+            .component_definition
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Component definition is required"))?;
+
+        Ok(Self {
             surface: None,
             layer_surface: None,
             size: PhysicalSize::default(),
@@ -38,9 +43,9 @@ impl WindowState {
             scale_factor: config.scale_factor,
             height: config.height,
             exclusive_zone: config.exclusive_zone,
-            component_definition: config.component_definition.take().unwrap(),
+            component_definition,
             component_instance: None,
-        }
+        })
     }
 
     pub fn show_component(&mut self) -> Result<()> {
@@ -52,11 +57,16 @@ impl WindowState {
 
         self.component_instance = Some(self.component_definition.create()?);
 
-        self.component_instance.as_ref().unwrap().show()?;
+        if let Some(component_instance) = &self.component_instance {
+            component_instance.show()?;
+        } else {
+            return Err(anyhow::anyhow!("Component instance not initialized"));
+        }
+
         Ok(())
     }
 
-    pub fn update_size(&mut self, width: u32, height: u32) {
+    pub fn update_size(&mut self, width: u32, height: u32) -> Result<()> {
         let new_size = PhysicalSize::new(width, height);
         if let Some(window) = &self.window() {
             info!("Updating window size to {}x{}", width, height);
@@ -70,10 +80,14 @@ impl WindowState {
             layer_surface.set_exclusive_zone(self.exclusive_zone);
         }
 
-        if let Some(s) = self.surface.as_ref() {
-            s.commit();
+        match self.surface.as_ref() {
+            Some(surface) => surface.commit(),
+            None => {
+                return Err(anyhow::anyhow!("Surface not initialized"));
+            }
         }
         self.size = new_size;
+        Ok(())
     }
 
     pub fn set_current_pointer_position(&mut self, physical_x: f64, physical_y: f64) {
@@ -130,7 +144,7 @@ impl WindowState {
         self.pointer = Some(pointer);
     }
 
-    pub fn component_instance(&self) -> &ComponentInstance {
-        self.component_instance.as_ref().unwrap()
+    pub const fn component_instance(&self) -> Option<&ComponentInstance> {
+        self.component_instance.as_ref()
     }
 }

@@ -1,5 +1,5 @@
 use crate::impl_empty_dispatch;
-use log::info;
+use log::{info, warn};
 use slint::{
     platform::{PointerEventButton, WindowEvent},
     PhysicalSize,
@@ -42,10 +42,20 @@ impl Dispatch<ZwlrLayerSurfaceV1, ()> for WindowState {
                 info!("Layer surface configured with size: {}x{}", width, height);
                 layer_surface.ack_configure(serial);
                 if width > 0 && height > 0 {
-                    state.update_size(state.output_size().width, state.height());
+                    state
+                        .update_size(state.output_size().width, state.height())
+                        .unwrap_or(warn!(
+                            "Failed to update window size with width: {} and height: {}",
+                            width, height
+                        ));
                 } else {
                     let current_size = state.output_size();
-                    state.update_size(current_size.width, current_size.height);
+                    state
+                        .update_size(current_size.width, current_size.height)
+                        .unwrap_or(warn!(
+                            "Failed to update window size with width: {} and height: {}",
+                            width, height
+                        ));
                 }
             }
             zwlr_layer_surface_v1::Event::Closed => {

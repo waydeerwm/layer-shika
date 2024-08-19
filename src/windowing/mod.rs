@@ -1,14 +1,12 @@
 use self::state::WindowState;
 use crate::{
     bind_globals,
-    rendering::{
-        egl_context::EGLContext, femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform,
-    },
+    rendering::{egl_context::EGLContext, femtovg_window::FemtoVGWindow},
 };
 use anyhow::{Context, Result};
 use config::WindowConfig;
-use log::{debug, info};
-use slint::{platform::femtovg_renderer::FemtoVGRenderer, ComponentHandle, LogicalPosition};
+use log::{debug, error, info};
+use slint::{platform::femtovg_renderer::FemtoVGRenderer, LogicalPosition};
 use slint_interpreter::ComponentInstance;
 use smithay_client_toolkit::reexports::{
     calloop::{self, EventLoop, Interest, LoopHandle, Mode, PostAction},
@@ -49,7 +47,7 @@ impl WindowingSystem {
         let (compositor, output, layer_shell, seat) =
             Self::bind_globals(&global_list, &event_queue.handle())?;
 
-        let mut state = WindowState::new(config);
+        let mut state = WindowState::new(config)?;
 
         Self::setup_surface(
             &compositor,
@@ -164,7 +162,9 @@ impl WindowingSystem {
 
     fn create_renderer(state: &WindowState, display: &WlDisplay) -> Result<FemtoVGRenderer> {
         let size = state.size();
-        let surface = state.surface().unwrap();
+        let surface = state
+            .surface()
+            .ok_or_else(|| anyhow::anyhow!("Failed to get surface"))?;
 
         debug!("Creating EGL context with size: {:?}", size);
         let context = EGLContext::builder()
@@ -205,48 +205,83 @@ impl WindowingSystem {
 
     pub fn run(&mut self) -> Result<()> {
         info!("Starting WindowingSystem main loop");
-        if let Some(window) = &self.state.window() {
-            window.render_frame_if_dirty();
-        }
-        self.state.show_component()?;
-        self.setup_wayland_event_source();
+
+        self.initialize_component()?;
+        self.setup_wayland_event_source()?;
+
+        let connection = Rc::clone(&self.connection);
+        let event_queue = &mut self.event_queue;
 
         self.event_loop
-            .run(None, &mut self.state, |shared_data| {
-                let _ = self.connection.flush();
-                if let Some(guard) = self.event_queue.prepare_read() {
-                    let _ = guard.read();
+            .run(None, &mut self.state, move |shared_data| {
+                if let Err(e) =
+                    Self::process_events(&Rc::clone(&connection), event_queue, shared_data)
+                {
+                    error!("Error processing events: {}", e);
                 }
-
-                let _ = self.event_queue.dispatch_pending(shared_data);
-
-                slint::platform::update_timers_and_animations();
-                shared_data
-                    .window()
-                    .as_ref()
-                    .unwrap()
-                    .render_frame_if_dirty();
             })
             .map_err(|e| anyhow::anyhow!("Failed to run event loop: {}", e))
     }
 
-    pub fn setup_wayland_event_source(&self) {
+    fn initialize_component(&mut self) -> Result<()> {
+        if let Some(window) = &self.state.window() {
+            window.render_frame_if_dirty()?;
+        } else {
+            return Err(anyhow::anyhow!("Window not initialized"));
+        }
+
+        self.state.show_component()?;
+        Ok(())
+    }
+
+    fn setup_wayland_event_source(&self) -> Result<()> {
         debug!("Setting up Wayland event source");
 
         let connection = Rc::clone(&self.connection);
 
-        let _ = self.event_loop.handle().insert_source(
-            calloop::generic::Generic::new(connection, Interest::READ, Mode::Level),
-            move |_, _connection, _shared_data| Ok(PostAction::Continue),
-        );
+        self.event_loop
+            .handle()
+            .insert_source(
+                calloop::generic::Generic::new(connection, Interest::READ, Mode::Level),
+                move |_, _connection, _shared_data| Ok(PostAction::Continue),
+            )
+            .map_err(|e| anyhow::anyhow!("Failed to set up Wayland event source: {}", e))?;
+
+        Ok(())
     }
 
-    pub fn component_instance(&self) -> &ComponentInstance {
+    fn process_events(
+        connection: &Rc<Connection>,
+        event_queue: &mut EventQueue<WindowState>,
+        shared_data: &mut WindowState,
+    ) -> Result<()> {
+        connection.flush()?;
+
+        if let Some(guard) = event_queue.prepare_read() {
+            guard
+                .read()
+                .map_err(|e| anyhow::anyhow!("Failed to read events: {}", e))?;
+        }
+
+        event_queue.dispatch_pending(shared_data)?;
+
+        slint::platform::update_timers_and_animations();
+
+        if let Some(window) = shared_data.window() {
+            window.render_frame_if_dirty()?;
+        } else {
+            return Err(anyhow::anyhow!("Window not initialized"));
+        }
+
+        Ok(())
+    }
+
+    pub const fn component_instance(&self) -> Option<&ComponentInstance> {
         self.state.component_instance()
     }
 
-    pub fn window(&self) -> Rc<FemtoVGWindow> {
-        Rc::clone(self.state().window().as_ref().unwrap())
+    pub fn window(&self) -> Option<Rc<FemtoVGWindow>> {
+        self.state().window().as_ref().map(Rc::clone)
     }
 
     pub const fn state(&self) -> &WindowState {
