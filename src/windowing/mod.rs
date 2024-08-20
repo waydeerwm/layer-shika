@@ -183,10 +183,11 @@ impl WindowingSystem {
         self.setup_wayland_event_source()?;
 
         let event_queue = &mut self.event_queue;
+        let connection = &self.connection;
 
         self.event_loop
             .run(None, &mut self.state, move |shared_data| {
-                if let Err(e) = Self::process_events(event_queue, shared_data) {
+                if let Err(e) = Self::process_events(connection, event_queue, shared_data) {
                     error!("Error processing events: {}", e);
                 }
             })
@@ -202,11 +203,7 @@ impl WindowingSystem {
             .handle()
             .insert_source(
                 calloop::generic::Generic::new(connection, Interest::READ, Mode::Level),
-                move |_, connection, _shared_data| {
-                    connection.flush().unwrap();
-
-                    Ok(PostAction::Continue)
-                },
+                move |_, _connection, _shared_data| Ok(PostAction::Continue),
             )
             .map_err(|e| anyhow::anyhow!("Failed to set up Wayland event source: {}", e))?;
 
@@ -214,6 +211,7 @@ impl WindowingSystem {
     }
 
     fn process_events(
+        connection: &Connection,
         event_queue: &mut EventQueue<WindowState>,
         shared_data: &mut WindowState,
     ) -> Result<()> {
@@ -222,6 +220,7 @@ impl WindowingSystem {
                 .read()
                 .map_err(|e| anyhow::anyhow!("Failed to read events: {}", e))?;
         }
+        connection.flush().unwrap();
 
         event_queue.dispatch_pending(shared_data)?;
 
