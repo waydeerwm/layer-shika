@@ -1,24 +1,23 @@
 use std::rc::Rc;
+use builder::WindowStateBuilder;
 use log::info;
 use slint::{LogicalPosition, PhysicalSize, ComponentHandle};
-use slint_interpreter::{ComponentDefinition, ComponentInstance};
+use slint_interpreter::ComponentInstance;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
-use wayland_client::protocol::{wl_pointer::WlPointer, wl_surface::WlSurface};
-use crate::rendering::{femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform};
-use super::WindowConfig;
-use anyhow::Result;
+use wayland_client::protocol::wl_surface::WlSurface;
+use crate::rendering::femtovg_window::FemtoVGWindow;
+use anyhow::{Context, Result};
 
+pub mod builder;
 pub mod dispatches;
 
 pub struct WindowState {
-    component_definition: ComponentDefinition,
-    component_instance: Option<ComponentInstance>,
-    surface: Option<Rc<WlSurface>>,
-    layer_surface: Option<Rc<ZwlrLayerSurfaceV1>>,
+    component_instance: ComponentInstance,
+    surface: Rc<WlSurface>,
+    layer_surface: Rc<ZwlrLayerSurfaceV1>,
     size: PhysicalSize,
     output_size: PhysicalSize,
-    pointer: Option<Rc<WlPointer>>,
-    window: Option<Rc<FemtoVGWindow>>,
+    window: Rc<FemtoVGWindow>,
     current_pointer_position: LogicalPosition,
     scale_factor: f32,
     height: u32,
@@ -26,68 +25,42 @@ pub struct WindowState {
 }
 
 impl WindowState {
-    pub fn new(config: &mut WindowConfig) -> Result<Self> {
-        let component_definition = config
+    pub fn new(builder: WindowStateBuilder) -> Result<Self> {
+        let component_definition = builder
             .component_definition
-            .take()
-            .ok_or_else(|| anyhow::anyhow!("Component definition is required"))?;
-
+            .context("Component definition is required")?;
+        let component_instance = component_definition
+            .create()
+            .context("Failed to create component instance")?;
+        component_instance
+            .show()
+            .context("Failed to show component")?;
         Ok(Self {
-            surface: None,
-            layer_surface: None,
-            size: PhysicalSize::default(),
-            output_size: PhysicalSize::default(),
-            pointer: None,
-            window: None,
+            component_instance,
+            surface: builder.surface.context("Surface is required")?,
+            layer_surface: builder.layer_surface.context("Layer surface is required")?,
+            size: builder.size.unwrap_or_default(),
+            output_size: builder.output_size.unwrap_or_default(),
+            window: builder.window.context("Window is required")?,
             current_pointer_position: LogicalPosition::default(),
-            scale_factor: config.scale_factor,
-            height: config.height,
-            exclusive_zone: config.exclusive_zone,
-            component_definition,
-            component_instance: None,
+            scale_factor: builder.scale_factor,
+            height: builder.height,
+            exclusive_zone: builder.exclusive_zone,
         })
     }
 
-    pub fn show_component(&mut self) -> Result<()> {
-        if let Some(window) = &self.window {
-            let platform = CustomSlintPlatform::new(Rc::clone(window));
-            slint::platform::set_platform(Box::new(platform))
-                .map_err(|e| anyhow::anyhow!("Failed to set platform: {:?}", e))?;
-        }
-
-        self.component_instance = Some(self.component_definition.create()?);
-
-        if let Some(component_instance) = &self.component_instance {
-            component_instance.show()?;
-        } else {
-            return Err(anyhow::anyhow!("Component instance not initialized"));
-        }
-
-        Ok(())
-    }
-
-    pub fn update_size(&mut self, width: u32, height: u32) -> Result<()> {
+    pub fn update_size(&mut self, width: u32, height: u32) {
         let new_size = PhysicalSize::new(width, height);
-        if let Some(window) = &self.window() {
-            info!("Updating window size to {}x{}", width, height);
-            window.set_size(slint::WindowSize::Physical(new_size));
-            window.set_scale_factor(self.scale_factor);
-        }
+        info!("Updating window size to {}x{}", width, height);
+        self.window.set_size(slint::WindowSize::Physical(new_size));
+        self.window.set_scale_factor(self.scale_factor);
 
-        if let Some(layer_surface) = &self.layer_surface() {
-            info!("Updating layer surface size to {}x{}", width, height);
-            layer_surface.set_size(width, height);
-            layer_surface.set_exclusive_zone(self.exclusive_zone);
-        }
+        info!("Updating layer surface size to {}x{}", width, height);
+        self.layer_surface.set_size(width, height);
+        self.layer_surface.set_exclusive_zone(self.exclusive_zone);
 
-        match self.surface.as_ref() {
-            Some(surface) => surface.commit(),
-            None => {
-                return Err(anyhow::anyhow!("Surface not initialized"));
-            }
-        }
+        self.surface.commit();
         self.size = new_size;
-        Ok(())
     }
 
     pub fn set_current_pointer_position(&mut self, physical_x: f64, physical_y: f64) {
@@ -99,22 +72,24 @@ impl WindowState {
         self.current_pointer_position = logical_position;
     }
 
-    pub const fn size(&self) -> PhysicalSize {
-        self.size
+    pub const fn size(&self) -> &PhysicalSize {
+        &self.size
     }
 
-    pub const fn current_pointer_position(&self) -> LogicalPosition {
-        self.current_pointer_position
-    }
-    pub fn window(&self) -> Option<Rc<FemtoVGWindow>> {
-        self.window.clone()
+    pub const fn current_pointer_position(&self) -> &LogicalPosition {
+        &self.current_pointer_position
     }
 
-    pub fn layer_surface(&self) -> Option<Rc<ZwlrLayerSurfaceV1>> {
-        self.layer_surface.clone()
+    pub fn window(&self) -> Rc<FemtoVGWindow> {
+        Rc::clone(&self.window)
     }
-    pub fn surface(&self) -> Option<Rc<WlSurface>> {
-        self.surface.clone()
+
+    pub fn layer_surface(&self) -> Rc<ZwlrLayerSurfaceV1> {
+        Rc::clone(&self.layer_surface)
+    }
+
+    pub fn surface(&self) -> Rc<WlSurface> {
+        Rc::clone(&self.surface)
     }
 
     pub const fn height(&self) -> u32 {
@@ -125,26 +100,11 @@ impl WindowState {
         self.output_size = output_size;
     }
 
-    pub const fn output_size(&self) -> PhysicalSize {
-        self.output_size
+    pub const fn output_size(&self) -> &PhysicalSize {
+        &self.output_size
     }
 
-    pub fn set_window(&mut self, window: Rc<FemtoVGWindow>) {
-        self.window = Some(window);
-    }
-
-    pub fn set_layer_surface(&mut self, layer_surface: Rc<ZwlrLayerSurfaceV1>) {
-        self.layer_surface = Some(layer_surface);
-    }
-
-    pub fn set_surface(&mut self, surface: Rc<WlSurface>) {
-        self.surface = Some(surface);
-    }
-    pub fn set_pointer(&mut self, pointer: Rc<WlPointer>) {
-        self.pointer = Some(pointer);
-    }
-
-    pub const fn component_instance(&self) -> Option<&ComponentInstance> {
-        self.component_instance.as_ref()
+    pub const fn component_instance(&self) -> &ComponentInstance {
+        &self.component_instance
     }
 }

@@ -4,9 +4,8 @@ use crate::{
     rendering::{egl_context::EGLContext, femtovg_window::FemtoVGWindow},
 };
 use anyhow::{Context, Result};
-use config::WindowConfig;
 use log::{debug, error, info};
-use slint::{platform::femtovg_renderer::FemtoVGRenderer, LogicalPosition};
+use slint::{platform::femtovg_renderer::FemtoVGRenderer, LogicalPosition, PhysicalSize};
 use slint_interpreter::ComponentInstance;
 use smithay_client_toolkit::reexports::{
     calloop::{self, EventLoop, Interest, LoopHandle, Mode, PostAction},
@@ -14,6 +13,7 @@ use smithay_client_toolkit::reexports::{
         zwlr_layer_shell_v1::ZwlrLayerShellV1, zwlr_layer_surface_v1::ZwlrLayerSurfaceV1,
     },
 };
+use state::builder::WindowStateBuilder;
 use std::rc::Rc;
 use wayland_client::{
     globals::{registry_queue_init, GlobalList},
@@ -37,32 +37,46 @@ pub struct WindowingSystem {
 }
 
 impl WindowingSystem {
-    fn new(config: &mut WindowConfig) -> Result<Self> {
+    fn new(config: &mut config::WindowConfig) -> Result<Self> {
         info!("Initializing WindowingSystem");
         let connection = Rc::new(Connection::connect_to_env()?);
 
         let global_list = Self::initialize_registry(&connection)?;
-        let mut event_queue = connection.new_event_queue();
+        let event_queue = connection.new_event_queue();
 
         let (compositor, output, layer_shell, seat) =
             Self::bind_globals(&global_list, &event_queue.handle())?;
 
-        let mut state = WindowState::new(config)?;
-
-        Self::setup_surface(
-            &compositor,
-            &output,
-            &layer_shell,
-            &seat,
+        let surface = Rc::new(compositor.create_surface(&event_queue.handle(), ()));
+        let layer_surface = Rc::new(layer_shell.get_layer_surface(
+            &surface,
+            Some(&output),
+            config.layer,
+            config.namespace.clone(),
             &event_queue.handle(),
-            &mut state,
-            config,
-        );
+            (),
+        ));
 
-        Self::wait_for_configure(&mut event_queue, &mut state)?;
+        let pointer = Rc::new(seat.get_pointer(&event_queue.handle(), ()));
+
+        Self::configure_layer_surface(&layer_surface, &surface, config);
+
+        let mut state_builder = WindowStateBuilder::new()
+            .component_definition(config.component_definition.take().unwrap())
+            .surface(Rc::clone(&surface))
+            .layer_surface(Rc::clone(&layer_surface))
+            .pointer(Rc::clone(&pointer))
+            .scale_factor(config.scale_factor)
+            .height(config.height)
+            .exclusive_zone(config.exclusive_zone);
+
+        //Self::wait_for_configure(&mut event_queue, &mut state_builder)?;
         let display = connection.display();
 
-        Self::initialize_renderer(&mut state, &display, config)?;
+        let window = Self::initialize_renderer(&state_builder, &display, config)?;
+        state_builder = state_builder.window(window);
+
+        let state = state_builder.build()?;
 
         let event_loop = EventLoop::try_new().context("Failed to create event loop")?;
 
@@ -94,38 +108,10 @@ impl WindowingSystem {
         )
     }
 
-    fn setup_surface(
-        compositor: &WlCompositor,
-        output: &WlOutput,
-        layer_shell: &ZwlrLayerShellV1,
-        seat: &WlSeat,
-        queue_handle: &QueueHandle<WindowState>,
-        state: &mut WindowState,
-        config: &WindowConfig,
-    ) {
-        let surface = Rc::new(compositor.create_surface(queue_handle, ()));
-        let layer_surface = Rc::new(layer_shell.get_layer_surface(
-            &surface,
-            Some(output),
-            config.layer,
-            config.namespace.clone(),
-            queue_handle,
-            (),
-        ));
-
-        let pointer = Rc::new(seat.get_pointer(queue_handle, ()));
-
-        state.set_surface(Rc::clone(&surface));
-        state.set_layer_surface(Rc::clone(&layer_surface));
-        state.set_pointer(pointer);
-
-        Self::configure_layer_surface(&layer_surface, &surface, config);
-    }
-
     fn configure_layer_surface(
         layer_surface: &Rc<ZwlrLayerSurfaceV1>,
         surface: &WlSurface,
-        config: &WindowConfig,
+        config: &config::WindowConfig,
     ) {
         layer_surface.set_anchor(config.anchor);
         layer_surface.set_margin(
@@ -141,29 +127,14 @@ impl WindowingSystem {
         surface.commit();
     }
 
-    fn wait_for_configure(
-        event_queue: &mut EventQueue<WindowState>,
-        state: &mut WindowState,
-    ) -> Result<()> {
-        info!("Waiting for surface to be configured...");
-        event_queue
-            .blocking_dispatch(state)
-            .context("Failed to dispatch events")?;
-        info!("Blocking dispatch completed");
-        let size = state.output_size();
-        if size.width > 1 && size.height > 1 {
-            info!("Configured output size: {:?}", size);
-        } else {
-            return Err(anyhow::anyhow!("Invalid output size: {:?}", size));
-        }
-        debug!("Surface configuration complete");
-        Ok(())
-    }
-
-    fn create_renderer(state: &WindowState, display: &WlDisplay) -> Result<FemtoVGRenderer> {
-        let size = state.size();
-        let surface = state
-            .surface()
+    fn create_renderer(
+        state_builder: &WindowStateBuilder,
+        display: &WlDisplay,
+    ) -> Result<FemtoVGRenderer> {
+        let size = state_builder.size.unwrap_or(PhysicalSize::new(1, 1));
+        let surface = state_builder
+            .surface
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Failed to get surface"))?;
 
         debug!("Creating EGL context with size: {:?}", size);
@@ -179,14 +150,14 @@ impl WindowingSystem {
     }
 
     fn initialize_renderer(
-        state: &mut WindowState,
+        state_builder: &WindowStateBuilder,
         display: &WlDisplay,
-        config: &WindowConfig,
-    ) -> Result<()> {
-        let renderer = Self::create_renderer(state, display)?;
+        config: &config::WindowConfig,
+    ) -> Result<Rc<FemtoVGWindow>> {
+        let renderer = Self::create_renderer(state_builder, display)?;
 
         let femtovg_window = FemtoVGWindow::new(renderer);
-        let size = state.size();
+        let size = state_builder.size.unwrap_or_default();
         info!("Initializing UI with size: {:?}", size);
         femtovg_window.set_size(slint::WindowSize::Physical(size));
         femtovg_window.set_scale_factor(config.scale_factor);
@@ -194,9 +165,7 @@ impl WindowingSystem {
 
         debug!("Creating Slint component instance");
 
-        state.set_window(Rc::clone(&femtovg_window));
-
-        Ok(())
+        Ok(femtovg_window)
     }
 
     pub fn event_loop_handle(&self) -> LoopHandle<'static, WindowState> {
@@ -206,7 +175,7 @@ impl WindowingSystem {
     pub fn run(&mut self) -> Result<()> {
         info!("Starting WindowingSystem main loop");
 
-        self.initialize_component()?;
+        self.state.window().render_frame_if_dirty()?;
         self.setup_wayland_event_source()?;
 
         let connection = Rc::clone(&self.connection);
@@ -221,17 +190,6 @@ impl WindowingSystem {
                 }
             })
             .map_err(|e| anyhow::anyhow!("Failed to run event loop: {}", e))
-    }
-
-    fn initialize_component(&mut self) -> Result<()> {
-        if let Some(window) = &self.state.window() {
-            window.render_frame_if_dirty()?;
-        } else {
-            return Err(anyhow::anyhow!("Window not initialized"));
-        }
-
-        self.state.show_component()?;
-        Ok(())
     }
 
     fn setup_wayland_event_source(&self) -> Result<()> {
@@ -267,21 +225,17 @@ impl WindowingSystem {
 
         slint::platform::update_timers_and_animations();
 
-        if let Some(window) = shared_data.window() {
-            window.render_frame_if_dirty()?;
-        } else {
-            return Err(anyhow::anyhow!("Window not initialized"));
-        }
+        shared_data.window().render_frame_if_dirty()?;
 
         Ok(())
     }
 
-    pub const fn component_instance(&self) -> Option<&ComponentInstance> {
+    pub const fn component_instance(&self) -> &ComponentInstance {
         self.state.component_instance()
     }
 
-    pub fn window(&self) -> Option<Rc<FemtoVGWindow>> {
-        self.state().window().as_ref().map(Rc::clone)
+    pub fn window(&self) -> Rc<FemtoVGWindow> {
+        self.state.window()
     }
 
     pub const fn state(&self) -> &WindowState {

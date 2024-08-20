@@ -1,5 +1,5 @@
 use crate::impl_empty_dispatch;
-use log::{info, warn};
+use log::info;
 use slint::{
     platform::{PointerEventButton, WindowEvent},
     PhysicalSize,
@@ -42,20 +42,10 @@ impl Dispatch<ZwlrLayerSurfaceV1, ()> for WindowState {
                 info!("Layer surface configured with size: {}x{}", width, height);
                 layer_surface.ack_configure(serial);
                 if width > 0 && height > 0 {
-                    state
-                        .update_size(state.output_size().width, state.height())
-                        .unwrap_or(warn!(
-                            "Failed to update window size with width: {} and height: {}",
-                            width, height
-                        ));
+                    state.update_size(state.output_size().width, state.height());
                 } else {
                     let current_size = state.output_size();
-                    state
-                        .update_size(current_size.width, current_size.height)
-                        .unwrap_or(warn!(
-                            "Failed to update window size with width: {} and height: {}",
-                            width, height
-                        ));
+                    state.update_size(current_size.width, current_size.height);
                 }
             }
             zwlr_layer_surface_v1::Event::Closed => {
@@ -125,33 +115,23 @@ impl Dispatch<WlPointer, ()> for WindowState {
                 surface_x,
                 surface_y,
                 ..
-            } => {
-                state.set_current_pointer_position(surface_x, surface_y);
-                let logical_position = state.current_pointer_position();
-                if let Some(window) = state.window() {
-                    window.dispatch_event(WindowEvent::PointerMoved {
-                        position: logical_position,
-                    });
-                }
             }
-            wl_pointer::Event::Leave { .. } => {
-                if let Some(window) = state.window() {
-                    window.dispatch_event(WindowEvent::PointerExited);
-                }
-            }
-            wl_pointer::Event::Motion {
+            | wl_pointer::Event::Motion {
                 surface_x,
                 surface_y,
                 ..
             } => {
                 state.set_current_pointer_position(surface_x, surface_y);
-                if let Some(window) = state.window() {
-                    let logical_position = state.current_pointer_position();
-                    window.dispatch_event(WindowEvent::PointerMoved {
-                        position: logical_position,
-                    });
-                }
+                let logical_position = state.current_pointer_position();
+                state.window().dispatch_event(WindowEvent::PointerMoved {
+                    position: *logical_position,
+                });
             }
+
+            wl_pointer::Event::Leave { .. } => {
+                state.window().dispatch_event(WindowEvent::PointerExited);
+            }
+
             wl_pointer::Event::Button {
                 state: button_state,
                 ..
@@ -159,16 +139,14 @@ impl Dispatch<WlPointer, ()> for WindowState {
                 let event = match button_state {
                     WEnum::Value(wl_pointer::ButtonState::Pressed) => WindowEvent::PointerPressed {
                         button: PointerEventButton::Left,
-                        position: state.current_pointer_position(),
+                        position: *state.current_pointer_position(),
                     },
                     _ => WindowEvent::PointerReleased {
                         button: PointerEventButton::Left,
-                        position: state.current_pointer_position(),
+                        position: *state.current_pointer_position(),
                     },
                 };
-                if let Some(window) = state.window() {
-                    window.dispatch_event(event);
-                }
+                state.window().dispatch_event(event);
             }
             _ => {}
         }
