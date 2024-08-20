@@ -22,6 +22,15 @@ keywords = [
 ]
 categories = ["gui", "compositor"]
 
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+clone_on_ref_ptr = "warn"
+multiple-crate-versions = "allow"
+module_name_repetitions = "allow"
+
 [dependencies]
 anyhow = "1.0.86"
 glutin = { version = "0.32.0", default-features = false, features = [
