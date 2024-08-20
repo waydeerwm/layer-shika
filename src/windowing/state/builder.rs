@@ -8,7 +8,6 @@ use anyhow::Result;
 
 use super::WindowState;
 
-#[derive(Clone)]
 pub struct WindowStateBuilder {
     pub component_definition: Option<ComponentDefinition>,
     pub surface: Option<Rc<WlSurface>>,
@@ -23,19 +22,8 @@ pub struct WindowStateBuilder {
 }
 
 impl WindowStateBuilder {
-    pub const fn new() -> Self {
-        Self {
-            component_definition: None,
-            surface: None,
-            layer_surface: None,
-            size: None,
-            output_size: None,
-            pointer: None,
-            window: None,
-            scale_factor: 1.0,
-            height: 30,
-            exclusive_zone: -1,
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn surface(mut self, surface: Rc<WlSurface>) -> Self {
@@ -94,5 +82,22 @@ impl WindowStateBuilder {
             .map_err(|e| anyhow::anyhow!("Failed to set platform: {:?}", e))?;
 
         WindowState::new(self)
+    }
+}
+
+impl Default for WindowStateBuilder {
+    fn default() -> Self {
+        Self {
+            component_definition: None,
+            surface: None,
+            layer_surface: None,
+            size: None,
+            output_size: None,
+            pointer: None,
+            window: None,
+            scale_factor: 1.0,
+            height: 30,
+            exclusive_zone: -1,
+        }
     }
 }

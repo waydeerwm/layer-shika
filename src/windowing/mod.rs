@@ -16,7 +16,7 @@ use smithay_client_toolkit::reexports::{
 use state::builder::WindowStateBuilder;
 use std::rc::Rc;
 use wayland_client::{
-    globals::{registry_queue_init, GlobalList},
+    globals::registry_queue_init,
     protocol::{
         wl_compositor::WlCompositor, wl_display::WlDisplay, wl_output::WlOutput, wl_seat::WlSeat,
         wl_surface::WlSurface,
