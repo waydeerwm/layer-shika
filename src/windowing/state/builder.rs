@@ -26,52 +26,52 @@ impl WindowStateBuilder {
         Self::default()
     }
 
-    pub fn surface(mut self, surface: Rc<WlSurface>) -> Self {
+    pub fn with_surface(mut self, surface: Rc<WlSurface>) -> Self {
         self.surface = Some(surface);
         self
     }
 
-    pub fn layer_surface(mut self, layer_surface: Rc<ZwlrLayerSurfaceV1>) -> Self {
+    pub fn with_layer_surface(mut self, layer_surface: Rc<ZwlrLayerSurfaceV1>) -> Self {
         self.layer_surface = Some(layer_surface);
         self
     }
 
-    pub const fn size(mut self, size: PhysicalSize) -> Self {
+    pub const fn with_size(mut self, size: PhysicalSize) -> Self {
         self.size = Some(size);
         self
     }
 
-    pub const fn output_size(mut self, output_size: PhysicalSize) -> Self {
+    pub const fn with_output_size(mut self, output_size: PhysicalSize) -> Self {
         self.output_size = Some(output_size);
         self
     }
 
-    pub fn pointer(mut self, pointer: Rc<WlPointer>) -> Self {
+    pub fn with_pointer(mut self, pointer: Rc<WlPointer>) -> Self {
         self.pointer = Some(pointer);
         self
     }
 
-    pub fn window(mut self, window: Rc<FemtoVGWindow>) -> Self {
+    pub fn with_window(mut self, window: Rc<FemtoVGWindow>) -> Self {
         self.window = Some(window);
         self
     }
 
-    pub const fn scale_factor(mut self, scale_factor: f32) -> Self {
+    pub const fn with_scale_factor(mut self, scale_factor: f32) -> Self {
         self.scale_factor = scale_factor;
         self
     }
 
-    pub const fn height(mut self, height: u32) -> Self {
+    pub const fn with_height(mut self, height: u32) -> Self {
         self.height = height;
         self
     }
 
-    pub const fn exclusive_zone(mut self, exclusive_zone: i32) -> Self {
+    pub const fn with_exclusive_zone(mut self, exclusive_zone: i32) -> Self {
         self.exclusive_zone = exclusive_zone;
         self
     }
 
-    pub fn component_definition(mut self, component_definition: ComponentDefinition) -> Self {
+    pub fn with_component_definition(mut self, component_definition: ComponentDefinition) -> Self {
         self.component_definition = Some(component_definition);
         self
     }

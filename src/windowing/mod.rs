@@ -61,14 +61,14 @@ impl WindowingSystem {
             .context("Component definition is required")?;
 
         let state = WindowStateBuilder::new()
-            .component_definition(component_definition)
-            .surface(Rc::clone(&surface))
-            .layer_surface(Rc::clone(&layer_surface))
-            .pointer(Rc::clone(&pointer))
-            .scale_factor(config.scale_factor)
-            .height(config.height)
-            .exclusive_zone(config.exclusive_zone)
-            .window(window)
+            .with_component_definition(component_definition)
+            .with_surface(Rc::clone(&surface))
+            .with_layer_surface(Rc::clone(&layer_surface))
+            .with_pointer(Rc::clone(&pointer))
+            .with_scale_factor(config.scale_factor)
+            .with_height(config.height)
+            .with_exclusive_zone(config.exclusive_zone)
+            .with_window(window)
             .build()?;
 
         let event_loop = EventLoop::try_new().context("Failed to create event loop")?;
