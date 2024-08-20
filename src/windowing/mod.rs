@@ -175,17 +175,18 @@ impl WindowingSystem {
     pub fn run(&mut self) -> Result<()> {
         info!("Starting WindowingSystem main loop");
 
-        self.state.window().render_frame_if_dirty()?;
+        while self.event_queue.blocking_dispatch(&mut self.state)? > 0 {
+            self.connection.flush()?;
+            self.state.window().render_frame_if_dirty()?;
+        }
+
         self.setup_wayland_event_source()?;
 
-        let connection = Rc::clone(&self.connection);
         let event_queue = &mut self.event_queue;
 
         self.event_loop
             .run(None, &mut self.state, move |shared_data| {
-                if let Err(e) =
-                    Self::process_events(&Rc::clone(&connection), event_queue, shared_data)
-                {
+                if let Err(e) = Self::process_events(event_queue, shared_data) {
                     error!("Error processing events: {}", e);
                 }
             })
@@ -201,7 +202,11 @@ impl WindowingSystem {
             .handle()
             .insert_source(
                 calloop::generic::Generic::new(connection, Interest::READ, Mode::Level),
-                move |_, _connection, _shared_data| Ok(PostAction::Continue),
+                move |_, connection, _shared_data| {
+                    connection.flush().unwrap();
+
+                    Ok(PostAction::Continue)
+                },
             )
             .map_err(|e| anyhow::anyhow!("Failed to set up Wayland event source: {}", e))?;
 
@@ -209,12 +214,9 @@ impl WindowingSystem {
     }
 
     fn process_events(
-        connection: &Rc<Connection>,
         event_queue: &mut EventQueue<WindowState>,
         shared_data: &mut WindowState,
     ) -> Result<()> {
-        connection.flush()?;
-
         if let Some(guard) = event_queue.prepare_read() {
             guard
                 .read()
