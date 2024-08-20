@@ -83,6 +83,7 @@ impl WindowingSystemBuilder {
         self
     }
 
+    #[allow(clippy::missing_errors_doc)]
     pub fn build(&mut self) -> Result<WindowingSystem> {
         match self.config.component_definition {
             Some(_) => WindowingSystem::new(&mut self.config),

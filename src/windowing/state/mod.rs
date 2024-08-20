@@ -63,6 +63,7 @@ impl WindowState {
         self.size = new_size;
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub fn set_current_pointer_position(&mut self, physical_x: f64, physical_y: f64) {
         let scale_factor = self.scale_factor;
         let logical_position = LogicalPosition::new(

@@ -51,7 +51,7 @@ impl WindowingSystem {
             &layer_shell,
             &event_queue.handle(),
             config,
-        )?;
+        );
 
         let pointer = Rc::new(seat.get_pointer(&event_queue.handle(), ()));
 
@@ -104,7 +104,7 @@ impl WindowingSystem {
         layer_shell: &ZwlrLayerShellV1,
         queue_handle: &QueueHandle<WindowState>,
         config: &config::WindowConfig,
-    ) -> Result<(Rc<WlSurface>, Rc<ZwlrLayerSurfaceV1>)> {
+    ) -> (Rc<WlSurface>, Rc<ZwlrLayerSurfaceV1>) {
         let surface = Rc::new(compositor.create_surface(queue_handle, ()));
         let layer_surface = Rc::new(layer_shell.get_layer_surface(
             &surface,
@@ -117,7 +117,7 @@ impl WindowingSystem {
 
         Self::configure_layer_surface(&layer_surface, &surface, config);
 
-        Ok((surface, layer_surface))
+        (surface, layer_surface)
     }
 
     fn configure_layer_surface(

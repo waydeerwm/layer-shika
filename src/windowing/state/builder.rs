@@ -23,7 +23,7 @@ pub struct WindowStateBuilder {
 
 impl WindowStateBuilder {
     pub fn new() -> Self {
-        Default::default()
+        Self::default()
     }
 
     pub fn surface(mut self, surface: Rc<WlSurface>) -> Self {
