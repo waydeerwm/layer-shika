@@ -54,25 +54,23 @@ impl WindowingSystem {
         );
 
         let pointer = Rc::new(seat.get_pointer(&event_queue.handle(), ()));
+        let window = Self::initialize_renderer(&surface, &connection.display(), config)?;
+        let component_definition = config
+            .component_definition
+            .take()
+            .context("Component definition is required")?;
 
-        let mut state_builder = WindowStateBuilder::new()
-            .component_definition(
-                config
-                    .component_definition
-                    .take()
-                    .context("Component definition is required")?,
-            )
+        let state = WindowStateBuilder::new()
+            .component_definition(component_definition)
             .surface(Rc::clone(&surface))
             .layer_surface(Rc::clone(&layer_surface))
             .pointer(Rc::clone(&pointer))
             .scale_factor(config.scale_factor)
             .height(config.height)
-            .exclusive_zone(config.exclusive_zone);
+            .exclusive_zone(config.exclusive_zone)
+            .window(window)
+            .build()?;
 
-        let window = Self::initialize_renderer(&state_builder, &connection.display(), config)?;
-        state_builder = state_builder.window(window);
-
-        let state = state_builder.build()?;
         let event_loop = EventLoop::try_new().context("Failed to create event loop")?;
 
         Ok(Self {
@@ -145,26 +143,22 @@ impl WindowingSystem {
     }
 
     fn initialize_renderer(
-        state_builder: &WindowStateBuilder,
+        surface: &Rc<WlSurface>,
         display: &WlDisplay,
         config: &config::WindowConfig,
     ) -> Result<Rc<FemtoVGWindow>> {
-        let size = state_builder.size.unwrap_or(PhysicalSize::new(1, 1));
-        let surface = state_builder
-            .surface
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Failed to get surface"))?;
+        let init_size = PhysicalSize::new(1, 1);
 
         let context = EGLContext::builder()
             .with_display_id(display.id())
             .with_surface_id(surface.id())
-            .with_size(size)
+            .with_size(init_size)
             .build()?;
 
         let renderer = FemtoVGRenderer::new(context).context("Failed to create FemtoVGRenderer")?;
 
         let femtovg_window = FemtoVGWindow::new(renderer);
-        femtovg_window.set_size(slint::WindowSize::Physical(size));
+        femtovg_window.set_size(slint::WindowSize::Physical(init_size));
         femtovg_window.set_scale_factor(config.scale_factor);
         femtovg_window.set_position(LogicalPosition::new(0., 0.));
 
