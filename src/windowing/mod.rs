@@ -56,7 +56,12 @@ impl WindowingSystem {
         let pointer = Rc::new(seat.get_pointer(&event_queue.handle(), ()));
 
         let mut state_builder = WindowStateBuilder::new()
-            .component_definition(config.component_definition.take().unwrap())
+            .component_definition(
+                config
+                    .component_definition
+                    .take()
+                    .context("Component definition is required")?,
+            )
             .surface(Rc::clone(&surface))
             .layer_surface(Rc::clone(&layer_surface))
             .pointer(Rc::clone(&pointer))
@@ -218,7 +223,7 @@ impl WindowingSystem {
                 .read()
                 .map_err(|e| anyhow::anyhow!("Failed to read events: {}", e))?;
         }
-        connection.flush().unwrap();
+        connection.flush()?;
 
         event_queue.dispatch_pending(shared_data)?;
 

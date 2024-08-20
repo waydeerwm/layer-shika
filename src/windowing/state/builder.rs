@@ -4,7 +4,7 @@ use slint_interpreter::ComponentDefinition;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use wayland_client::protocol::{wl_pointer::WlPointer, wl_surface::WlSurface};
 use crate::rendering::{femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform};
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use super::WindowState;
 
@@ -77,7 +77,9 @@ impl WindowStateBuilder {
     }
 
     pub fn build(self) -> Result<WindowState> {
-        let platform = CustomSlintPlatform::new(Rc::clone(self.window.as_ref().unwrap()));
+        let platform = CustomSlintPlatform::new(Rc::clone(
+            self.window.as_ref().context("Window is required")?,
+        ));
         slint::platform::set_platform(Box::new(platform))
             .map_err(|e| anyhow::anyhow!("Failed to set platform: {:?}", e))?;
 

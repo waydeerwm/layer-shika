@@ -30,6 +30,7 @@ pedantic = { level = "warn", priority = -1 }
 clone_on_ref_ptr = "warn"
 multiple-crate-versions = "allow"
 module_name_repetitions = "allow"
+unwrap_used = "warn"
 
 [dependencies]
 anyhow = "1.0.86"
