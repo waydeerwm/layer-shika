@@ -40,26 +40,20 @@ impl WindowingSystem {
     fn new(config: &mut config::WindowConfig) -> Result<Self> {
         info!("Initializing WindowingSystem");
         let connection = Rc::new(Connection::connect_to_env()?);
-
-        let global_list = Self::initialize_registry(&connection)?;
         let event_queue = connection.new_event_queue();
 
         let (compositor, output, layer_shell, seat) =
-            Self::bind_globals(&global_list, &event_queue.handle())?;
+            Self::initialize_globals(&connection, &event_queue.handle())?;
 
-        let surface = Rc::new(compositor.create_surface(&event_queue.handle(), ()));
-        let layer_surface = Rc::new(layer_shell.get_layer_surface(
-            &surface,
-            Some(&output),
-            config.layer,
-            config.namespace.clone(),
+        let (surface, layer_surface) = Self::setup_surface(
+            &compositor,
+            &output,
+            &layer_shell,
             &event_queue.handle(),
-            (),
-        ));
+            config,
+        )?;
 
         let pointer = Rc::new(seat.get_pointer(&event_queue.handle(), ()));
-
-        Self::configure_layer_surface(&layer_surface, &surface, config);
 
         let mut state_builder = WindowStateBuilder::new()
             .component_definition(config.component_definition.take().unwrap())
@@ -70,14 +64,10 @@ impl WindowingSystem {
             .height(config.height)
             .exclusive_zone(config.exclusive_zone);
 
-        //Self::wait_for_configure(&mut event_queue, &mut state_builder)?;
-        let display = connection.display();
-
-        let window = Self::initialize_renderer(&state_builder, &display, config)?;
+        let window = Self::initialize_renderer(&state_builder, &connection.display(), config)?;
         state_builder = state_builder.window(window);
 
         let state = state_builder.build()?;
-
         let event_loop = EventLoop::try_new().context("Failed to create event loop")?;
 
         Ok(Self {
@@ -88,24 +78,46 @@ impl WindowingSystem {
         })
     }
 
-    fn initialize_registry(connection: &Connection) -> Result<GlobalList> {
-        registry_queue_init::<WindowState>(connection)
-            .map(|(global_list, _)| global_list)
-            .context("Failed to initialize registry")
-    }
-
-    fn bind_globals(
-        global_list: &GlobalList,
+    fn initialize_globals(
+        connection: &Connection,
         queue_handle: &QueueHandle<WindowState>,
     ) -> Result<(WlCompositor, WlOutput, ZwlrLayerShellV1, WlSeat)> {
-        bind_globals!(
-            global_list,
+        let global_list = registry_queue_init::<WindowState>(connection)
+            .map(|(global_list, _)| global_list)
+            .context("Failed to initialize registry")?;
+
+        let (compositor, output, layer_shell, seat) = bind_globals!(
+            &global_list,
             queue_handle,
             (WlCompositor, compositor, 1..=1),
             (WlOutput, output, 1..=1),
             (ZwlrLayerShellV1, layer_shell, 1..=1),
             (WlSeat, seat, 1..=1)
-        )
+        )?;
+
+        Ok((compositor, output, layer_shell, seat))
+    }
+
+    fn setup_surface(
+        compositor: &WlCompositor,
+        output: &WlOutput,
+        layer_shell: &ZwlrLayerShellV1,
+        queue_handle: &QueueHandle<WindowState>,
+        config: &config::WindowConfig,
+    ) -> Result<(Rc<WlSurface>, Rc<ZwlrLayerSurfaceV1>)> {
+        let surface = Rc::new(compositor.create_surface(queue_handle, ()));
+        let layer_surface = Rc::new(layer_shell.get_layer_surface(
+            &surface,
+            Some(output),
+            config.layer,
+            config.namespace.clone(),
+            queue_handle,
+            (),
+        ));
+
+        Self::configure_layer_surface(&layer_surface, &surface, config);
+
+        Ok((surface, layer_surface))
     }
 
     fn configure_layer_surface(
@@ -127,43 +139,29 @@ impl WindowingSystem {
         surface.commit();
     }
 
-    fn create_renderer(
+    fn initialize_renderer(
         state_builder: &WindowStateBuilder,
         display: &WlDisplay,
-    ) -> Result<FemtoVGRenderer> {
+        config: &config::WindowConfig,
+    ) -> Result<Rc<FemtoVGWindow>> {
         let size = state_builder.size.unwrap_or(PhysicalSize::new(1, 1));
         let surface = state_builder
             .surface
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Failed to get surface"))?;
 
-        debug!("Creating EGL context with size: {:?}", size);
         let context = EGLContext::builder()
             .with_display_id(display.id())
             .with_surface_id(surface.id())
             .with_size(size)
-            .build()
-            .map_err(|e| anyhow::anyhow!("Failed to create EGL context: {:?}", e))?;
+            .build()?;
 
-        debug!("Creating FemtoVGRenderer");
-        FemtoVGRenderer::new(context).context("Failed to create FemtoVGRenderer")
-    }
-
-    fn initialize_renderer(
-        state_builder: &WindowStateBuilder,
-        display: &WlDisplay,
-        config: &config::WindowConfig,
-    ) -> Result<Rc<FemtoVGWindow>> {
-        let renderer = Self::create_renderer(state_builder, display)?;
+        let renderer = FemtoVGRenderer::new(context).context("Failed to create FemtoVGRenderer")?;
 
         let femtovg_window = FemtoVGWindow::new(renderer);
-        let size = state_builder.size.unwrap_or_default();
-        info!("Initializing UI with size: {:?}", size);
         femtovg_window.set_size(slint::WindowSize::Physical(size));
         femtovg_window.set_scale_factor(config.scale_factor);
         femtovg_window.set_position(LogicalPosition::new(0., 0.));
-
-        debug!("Creating Slint component instance");
 
         Ok(femtovg_window)
     }

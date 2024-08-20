@@ -26,7 +26,7 @@ macro_rules! bind_globals {
                 let $name: $interface = $global_list.bind($queue_handle, $version, ())
                     .with_context(|| format!("Failed to bind {}", stringify!($name)))?;
             )+
-            Ok(($($name),+))
+            Ok::<($($interface,)+), anyhow::Error>(($($name,)+))
         }
     };
 }
