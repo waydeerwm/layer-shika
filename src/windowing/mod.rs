@@ -4,6 +4,7 @@ use crate::{
     rendering::{egl_context::EGLContext, femtovg_window::FemtoVGWindow},
 };
 use anyhow::{Context, Result};
+use config::WindowConfig;
 use log::{debug, error, info};
 use slint::{platform::femtovg_renderer::FemtoVGRenderer, LogicalPosition, PhysicalSize};
 use slint_interpreter::ComponentInstance;
@@ -37,7 +38,7 @@ pub struct WindowingSystem {
 }
 
 impl WindowingSystem {
-    fn new(config: &mut config::WindowConfig) -> Result<Self> {
+    fn new(config: &mut WindowConfig) -> Result<Self> {
         info!("Initializing WindowingSystem");
         let connection = Rc::new(Connection::connect_to_env()?);
         let event_queue = connection.new_event_queue();
@@ -106,7 +107,7 @@ impl WindowingSystem {
         output: &WlOutput,
         layer_shell: &ZwlrLayerShellV1,
         queue_handle: &QueueHandle<WindowState>,
-        config: &config::WindowConfig,
+        config: &WindowConfig,
     ) -> (Rc<WlSurface>, Rc<ZwlrLayerSurfaceV1>) {
         let surface = Rc::new(compositor.create_surface(queue_handle, ()));
         let layer_surface = Rc::new(layer_shell.get_layer_surface(
@@ -126,7 +127,7 @@ impl WindowingSystem {
     fn configure_layer_surface(
         layer_surface: &Rc<ZwlrLayerSurfaceV1>,
         surface: &WlSurface,
-        config: &config::WindowConfig,
+        config: &WindowConfig,
     ) {
         layer_surface.set_anchor(config.anchor);
         layer_surface.set_margin(
@@ -145,7 +146,7 @@ impl WindowingSystem {
     fn initialize_renderer(
         surface: &Rc<WlSurface>,
         display: &WlDisplay,
-        config: &config::WindowConfig,
+        config: &WindowConfig,
     ) -> Result<Rc<FemtoVGWindow>> {
         let init_size = PhysicalSize::new(1, 1);
 
