@@ -1,4 +1,3 @@
-use anyhow::Result;
 use slint::{
     platform::{Platform, WindowAdapter},
     PlatformError,

@@ -1,9 +1,10 @@
-use anyhow::Result;
 use slint_interpreter::ComponentDefinition;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::{
     zwlr_layer_shell_v1::{self},
     zwlr_layer_surface_v1::{Anchor, KeyboardInteractivity},
 };
+
+use crate::errors::LayerShikaError;
 
 use super::{config::WindowConfig, WindowingSystem};
 
@@ -84,10 +85,12 @@ impl WindowingSystemBuilder {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    pub fn build(&mut self) -> Result<WindowingSystem> {
+    pub fn build(&mut self) -> Result<WindowingSystem, LayerShikaError> {
         match self.config.component_definition {
             Some(_) => WindowingSystem::new(&mut self.config),
-            None => Err(anyhow::anyhow!("Slint component not set")),
+            None => Err(LayerShikaError::InvalidInput(
+                "Slint component not set".into(),
+            )),
         }
     }
 }

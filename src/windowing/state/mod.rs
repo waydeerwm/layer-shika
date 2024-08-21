@@ -6,7 +6,7 @@ use slint_interpreter::ComponentInstance;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use wayland_client::protocol::wl_surface::WlSurface;
 use crate::rendering::femtovg_window::FemtoVGWindow;
-use anyhow::{Context, Result};
+use crate::errors::LayerShikaError;
 
 pub mod builder;
 pub mod dispatches;
@@ -25,23 +25,29 @@ pub struct WindowState {
 }
 
 impl WindowState {
-    pub fn new(builder: WindowStateBuilder) -> Result<Self> {
-        let component_definition = builder
-            .component_definition
-            .context("Component definition is required")?;
+    pub fn new(builder: WindowStateBuilder) -> Result<Self, LayerShikaError> {
+        let component_definition = builder.component_definition.ok_or_else(|| {
+            LayerShikaError::InvalidInput("Component definition is required".into())
+        })?;
         let component_instance = component_definition
             .create()
-            .context("Failed to create component instance")?;
+            .map_err(|e| LayerShikaError::SlintComponentCreation(e.to_string()))?;
         component_instance
             .show()
-            .context("Failed to show component")?;
+            .map_err(|e| LayerShikaError::SlintComponentCreation(e.to_string()))?;
         Ok(Self {
             component_instance,
-            surface: builder.surface.context("Surface is required")?,
-            layer_surface: builder.layer_surface.context("Layer surface is required")?,
+            surface: builder
+                .surface
+                .ok_or_else(|| LayerShikaError::InvalidInput("Surface is required".into()))?,
+            layer_surface: builder
+                .layer_surface
+                .ok_or_else(|| LayerShikaError::InvalidInput("Layer surface is required".into()))?,
             size: builder.size.unwrap_or_default(),
             output_size: builder.output_size.unwrap_or_default(),
-            window: builder.window.context("Window is required")?,
+            window: builder
+                .window
+                .ok_or_else(|| LayerShikaError::InvalidInput("Window is required".into()))?,
             current_pointer_position: LogicalPosition::default(),
             scale_factor: builder.scale_factor,
             height: builder.height,

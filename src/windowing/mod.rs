@@ -1,9 +1,9 @@
 use self::state::WindowState;
 use crate::{
     bind_globals,
+    errors::LayerShikaError,
     rendering::{egl_context::EGLContext, femtovg_window::FemtoVGWindow},
 };
-use anyhow::{Context, Result};
 use config::WindowConfig;
 use log::{debug, error, info};
 use slint::{platform::femtovg_renderer::FemtoVGRenderer, LogicalPosition, PhysicalSize};
@@ -38,13 +38,15 @@ pub struct WindowingSystem {
 }
 
 impl WindowingSystem {
-    fn new(config: &mut WindowConfig) -> Result<Self> {
+    fn new(config: &mut WindowConfig) -> Result<Self, LayerShikaError> {
         info!("Initializing WindowingSystem");
-        let connection = Rc::new(Connection::connect_to_env()?);
+        let connection =
+            Rc::new(Connection::connect_to_env().map_err(LayerShikaError::WaylandConnection)?);
         let event_queue = connection.new_event_queue();
 
         let (compositor, output, layer_shell, seat) =
-            Self::initialize_globals(&connection, &event_queue.handle())?;
+            Self::initialize_globals(&connection, &event_queue.handle())
+                .map_err(|e| LayerShikaError::GlobalInitialization(e.to_string()))?;
 
         let (surface, layer_surface) = Self::setup_surface(
             &compositor,
@@ -55,11 +57,11 @@ impl WindowingSystem {
         );
 
         let pointer = Rc::new(seat.get_pointer(&event_queue.handle(), ()));
-        let window = Self::initialize_renderer(&surface, &connection.display(), config)?;
-        let component_definition = config
-            .component_definition
-            .take()
-            .context("Component definition is required")?;
+        let window = Self::initialize_renderer(&surface, &connection.display(), config)
+            .map_err(|e| LayerShikaError::EGLContextCreation(e.to_string()))?;
+        let component_definition = config.component_definition.take().ok_or_else(|| {
+            LayerShikaError::WindowConfiguration("Component definition is required".to_string())
+        })?;
 
         let state = WindowStateBuilder::new()
             .with_component_definition(component_definition)
@@ -70,9 +72,11 @@ impl WindowingSystem {
             .with_height(config.height)
             .with_exclusive_zone(config.exclusive_zone)
             .with_window(window)
-            .build()?;
+            .build()
+            .map_err(|e| LayerShikaError::WindowConfiguration(e.to_string()))?;
 
-        let event_loop = EventLoop::try_new().context("Failed to create event loop")?;
+        let event_loop =
+            EventLoop::try_new().map_err(|e| LayerShikaError::EventLoop(e.to_string()))?;
 
         Ok(Self {
             state,
@@ -85,10 +89,10 @@ impl WindowingSystem {
     fn initialize_globals(
         connection: &Connection,
         queue_handle: &QueueHandle<WindowState>,
-    ) -> Result<(WlCompositor, WlOutput, ZwlrLayerShellV1, WlSeat)> {
+    ) -> Result<(WlCompositor, WlOutput, ZwlrLayerShellV1, WlSeat), LayerShikaError> {
         let global_list = registry_queue_init::<WindowState>(connection)
             .map(|(global_list, _)| global_list)
-            .context("Failed to initialize registry")?;
+            .map_err(|e| LayerShikaError::GlobalInitialization(e.to_string()))?;
 
         let (compositor, output, layer_shell, seat) = bind_globals!(
             &global_list,
@@ -147,16 +151,18 @@ impl WindowingSystem {
         surface: &Rc<WlSurface>,
         display: &WlDisplay,
         config: &WindowConfig,
-    ) -> Result<Rc<FemtoVGWindow>> {
+    ) -> Result<Rc<FemtoVGWindow>, LayerShikaError> {
         let init_size = PhysicalSize::new(1, 1);
 
         let context = EGLContext::builder()
             .with_display_id(display.id())
             .with_surface_id(surface.id())
             .with_size(init_size)
-            .build()?;
+            .build()
+            .map_err(|e| LayerShikaError::EGLContextCreation(e.to_string()))?;
 
-        let renderer = FemtoVGRenderer::new(context).context("Failed to create FemtoVGRenderer")?;
+        let renderer = FemtoVGRenderer::new(context)
+            .map_err(|e| LayerShikaError::FemtoVGRendererCreation(e.to_string()))?;
 
         let femtovg_window = FemtoVGWindow::new(renderer);
         femtovg_window.set_size(slint::WindowSize::Physical(init_size));
@@ -170,12 +176,22 @@ impl WindowingSystem {
         self.event_loop.handle()
     }
 
-    pub fn run(&mut self) -> Result<()> {
+    pub fn run(&mut self) -> Result<(), LayerShikaError> {
         info!("Starting WindowingSystem main loop");
 
-        while self.event_queue.blocking_dispatch(&mut self.state)? > 0 {
-            self.connection.flush()?;
-            self.state.window().render_frame_if_dirty()?;
+        while self
+            .event_queue
+            .blocking_dispatch(&mut self.state)
+            .map_err(|e| LayerShikaError::WaylandProtocol(e.to_string()))?
+            > 0
+        {
+            self.connection
+                .flush()
+                .map_err(|e| LayerShikaError::WaylandProtocol(e.to_string()))?;
+            self.state
+                .window()
+                .render_frame_if_dirty()
+                .map_err(|e| LayerShikaError::Rendering(e.to_string()))?;
         }
 
         self.setup_wayland_event_source()?;
@@ -189,10 +205,10 @@ impl WindowingSystem {
                     error!("Error processing events: {}", e);
                 }
             })
-            .map_err(|e| anyhow::anyhow!("Failed to run event loop: {}", e))
+            .map_err(|e| LayerShikaError::EventLoop(e.to_string()))
     }
 
-    fn setup_wayland_event_source(&self) -> Result<()> {
+    fn setup_wayland_event_source(&self) -> Result<(), LayerShikaError> {
         debug!("Setting up Wayland event source");
 
         let connection = Rc::clone(&self.connection);
@@ -203,7 +219,7 @@ impl WindowingSystem {
                 calloop::generic::Generic::new(connection, Interest::READ, Mode::Level),
                 move |_, _connection, _shared_data| Ok(PostAction::Continue),
             )
-            .map_err(|e| anyhow::anyhow!("Failed to set up Wayland event source: {}", e))?;
+            .map_err(|e| LayerShikaError::EventLoop(e.to_string()))?;
 
         Ok(())
     }
@@ -212,19 +228,24 @@ impl WindowingSystem {
         connection: &Connection,
         event_queue: &mut EventQueue<WindowState>,
         shared_data: &mut WindowState,
-    ) -> Result<()> {
+    ) -> Result<(), LayerShikaError> {
         if let Some(guard) = event_queue.prepare_read() {
             guard
                 .read()
-                .map_err(|e| anyhow::anyhow!("Failed to read events: {}", e))?;
+                .map_err(|e| LayerShikaError::WaylandProtocol(e.to_string()))?;
         }
         connection.flush()?;
 
-        event_queue.dispatch_pending(shared_data)?;
+        event_queue
+            .dispatch_pending(shared_data)
+            .map_err(|e| LayerShikaError::WaylandProtocol(e.to_string()))?;
 
         slint::platform::update_timers_and_animations();
 
-        shared_data.window().render_frame_if_dirty()?;
+        shared_data
+            .window()
+            .render_frame_if_dirty()
+            .map_err(|e| LayerShikaError::Rendering(e.to_string()))?;
 
         Ok(())
     }

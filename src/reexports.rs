@@ -8,5 +8,3 @@ pub mod sctk {
 pub mod wayland_client {
     pub use wayland_client::*;
 }
-
-pub use anyhow;

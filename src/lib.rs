@@ -1,3 +1,4 @@
+mod errors;
 mod reexports;
 mod rendering;
 mod windowing;

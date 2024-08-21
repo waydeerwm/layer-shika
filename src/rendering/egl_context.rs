@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use crate::errors::LayerShikaError;
 use glutin::{
     api::egl::{context::PossiblyCurrentContext, display::Display, surface::Surface},
     config::ConfigTemplateBuilder,
@@ -22,6 +22,7 @@ pub struct EGLContext {
     context: PossiblyCurrentContext,
     surface: Surface<WindowSurface>,
 }
+
 #[derive(Default)]
 pub struct EGLContextBuilder {
     display_id: Option<ObjectId>,
@@ -31,7 +32,6 @@ pub struct EGLContextBuilder {
     context_attributes: Option<ContextAttributesBuilder>,
 }
 
-#[allow(dead_code)]
 impl EGLContextBuilder {
     pub fn new() -> Self {
         Self::default()
@@ -52,11 +52,13 @@ impl EGLContextBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub const fn with_config_template(mut self, config_template: ConfigTemplateBuilder) -> Self {
         self.config_template = Some(config_template);
         self
     }
 
+    #[allow(dead_code)]
     pub const fn with_context_attributes(
         mut self,
         context_attributes: ContextAttributesBuilder,
@@ -65,17 +67,21 @@ impl EGLContextBuilder {
         self
     }
 
-    pub fn build(self) -> Result<EGLContext> {
+    pub fn build(self) -> Result<EGLContext, LayerShikaError> {
         let display_id = self
             .display_id
-            .ok_or_else(|| anyhow!("Display ID is required"))?;
+            .ok_or_else(|| LayerShikaError::InvalidInput("Display ID is required".into()))?;
         let surface_id = self
             .surface_id
-            .ok_or_else(|| anyhow!("Surface ID is required"))?;
-        let size = self.size.ok_or_else(|| anyhow!("Size is required"))?;
+            .ok_or_else(|| LayerShikaError::InvalidInput("Surface ID is required".into()))?;
+        let size = self
+            .size
+            .ok_or_else(|| LayerShikaError::InvalidInput("Size is required".into()))?;
 
         let display_handle = create_wayland_display_handle(&display_id)?;
-        let glutin_display = unsafe { Display::new(display_handle) }?;
+        let glutin_display = unsafe { Display::new(display_handle) }.map_err(|e| {
+            LayerShikaError::EGLContextCreation(format!("Failed to create display: {e}"))
+        })?;
 
         let config_template = self.config_template.unwrap_or_default();
 
@@ -90,7 +96,7 @@ impl EGLContextBuilder {
 
         let context = context
             .make_current(&surface)
-            .map_err(|e| anyhow!("Unable to activate EGL context: {}. This may indicate a problem with the graphics drivers.", e))?;
+            .map_err(|e| LayerShikaError::EGLContextCreation(format!("Unable to activate EGL context: {e}. This may indicate a problem with the graphics drivers.")))?;
 
         Ok(EGLContext { context, surface })
     }
@@ -101,17 +107,22 @@ impl EGLContext {
         EGLContextBuilder::new()
     }
 
-    fn ensure_current(&self) -> Result<()> {
+    fn ensure_current(&self) -> Result<(), LayerShikaError> {
         if !self.context.is_current() {
-            self.context.make_current(&self.surface)?;
+            self.context.make_current(&self.surface).map_err(|e| {
+                LayerShikaError::EGLContextCreation(format!("Failed to make context current: {e}"))
+            })?;
         }
         Ok(())
     }
 }
 
-fn create_wayland_display_handle(display_id: &ObjectId) -> Result<RawDisplayHandle> {
-    let display = NonNull::new(display_id.as_ptr().cast::<c_void>())
-        .ok_or_else(|| anyhow!("Failed to create NonNull pointer for display"))?;
+fn create_wayland_display_handle(
+    display_id: &ObjectId,
+) -> Result<RawDisplayHandle, LayerShikaError> {
+    let display = NonNull::new(display_id.as_ptr().cast::<c_void>()).ok_or_else(|| {
+        LayerShikaError::InvalidInput("Failed to create NonNull pointer for display".into())
+    })?;
     let handle = WaylandDisplayHandle::new(display);
     Ok(RawDisplayHandle::Wayland(handle))
 }
@@ -119,24 +130,27 @@ fn create_wayland_display_handle(display_id: &ObjectId) -> Result<RawDisplayHand
 fn select_config(
     glutin_display: &Display,
     config_template: ConfigTemplateBuilder,
-) -> Result<glutin::api::egl::config::Config> {
-    let mut configs = unsafe { glutin_display.find_configs(config_template.build()) }?;
-    configs
-        .next()
-        .ok_or_else(|| anyhow!("No compatible EGL configurations found."))
+) -> Result<glutin::api::egl::config::Config, LayerShikaError> {
+    let mut configs = unsafe { glutin_display.find_configs(config_template.build()) }
+        .map_err(|e| LayerShikaError::EGLContextCreation(format!("Failed to find configs: {e}")))?;
+    configs.next().ok_or_else(|| {
+        LayerShikaError::EGLContextCreation("No compatible EGL configurations found.".into())
+    })
 }
+
 fn create_context(
     glutin_display: &Display,
     config: &glutin::api::egl::config::Config,
     context_attributes: ContextAttributesBuilder,
-) -> Result<glutin::api::egl::context::NotCurrentContext> {
+) -> Result<glutin::api::egl::context::NotCurrentContext, LayerShikaError> {
     unsafe { glutin_display.create_context(config, &context_attributes.build(None)) }
-        .map_err(|e| anyhow!("Failed to create context: {}", e))
+        .map_err(|e| LayerShikaError::EGLContextCreation(format!("Failed to create context: {e}")))
 }
 
-fn create_surface_handle(surface_id: &ObjectId) -> Result<RawWindowHandle> {
-    let surface = NonNull::new(surface_id.as_ptr().cast::<c_void>())
-        .ok_or_else(|| anyhow!("Failed to create NonNull pointer for surface"))?;
+fn create_surface_handle(surface_id: &ObjectId) -> Result<RawWindowHandle, LayerShikaError> {
+    let surface = NonNull::new(surface_id.as_ptr().cast::<c_void>()).ok_or_else(|| {
+        LayerShikaError::InvalidInput("Failed to create NonNull pointer for surface".into())
+    })?;
     let handle = WaylandWindowHandle::new(surface);
     Ok(RawWindowHandle::Wayland(handle))
 }
@@ -146,32 +160,31 @@ fn create_surface(
     config: &glutin::api::egl::config::Config,
     surface_handle: RawWindowHandle,
     size: PhysicalSize,
-) -> Result<Surface<WindowSurface>> {
-    let Some(width) = NonZeroU32::new(size.width) else {
-        return Err(anyhow!("Width cannot be zero"));
-    };
+) -> Result<Surface<WindowSurface>, LayerShikaError> {
+    let width = NonZeroU32::new(size.width)
+        .ok_or_else(|| LayerShikaError::InvalidInput("Width cannot be zero".into()))?;
 
-    let Some(height) = NonZeroU32::new(size.height) else {
-        return Err(anyhow!("Height cannot be zero"));
-    };
+    let height = NonZeroU32::new(size.height)
+        .ok_or_else(|| LayerShikaError::InvalidInput("Height cannot be zero".into()))?;
 
     let attrs =
         SurfaceAttributesBuilder::<WindowSurface>::new().build(surface_handle, width, height);
 
-    unsafe { glutin_display.create_window_surface(config, &attrs) }
-        .map_err(|e| anyhow!("Failed to create window surface: {}", e))
+    unsafe { glutin_display.create_window_surface(config, &attrs) }.map_err(|e| {
+        LayerShikaError::EGLContextCreation(format!("Failed to create window surface: {e}"))
+    })
 }
 
 unsafe impl OpenGLInterface for EGLContext {
     fn ensure_current(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        Ok(self.ensure_current()?)
+        self.ensure_current()
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
     }
 
     fn swap_buffers(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.surface
-            .swap_buffers(&self.context)
-            .map_err(|e| anyhow!("Failed to swap buffers: {}", e))
-            .map_err(Into::into)
+        self.surface.swap_buffers(&self.context).map_err(|e| {
+            LayerShikaError::EGLContextCreation(format!("Failed to swap buffers: {e}")).into()
+        })
     }
 
     fn resize(

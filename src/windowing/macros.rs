@@ -24,9 +24,9 @@ macro_rules! bind_globals {
         {
             $(
                 let $name: $interface = $global_list.bind($queue_handle, $version, ())
-                    .with_context(|| format!("Failed to bind {}", stringify!($name)))?;
+                    .map_err(|e| LayerShikaError::WaylandDispatch(e.to_string()))?;
             )+
-            Ok::<($($interface,)+), anyhow::Error>(($($name,)+))
+            Ok::<($($interface,)+), LayerShikaError>(($($name,)+))
         }
     };
 }

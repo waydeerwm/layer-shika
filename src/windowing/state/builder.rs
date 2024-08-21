@@ -3,8 +3,7 @@ use slint::PhysicalSize;
 use slint_interpreter::ComponentDefinition;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use wayland_client::protocol::{wl_pointer::WlPointer, wl_surface::WlSurface};
-use crate::rendering::{femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform};
-use anyhow::{Context, Result};
+use crate::{errors::LayerShikaError, rendering::{femtovg_window::FemtoVGWindow, slint_platform::CustomSlintPlatform}};
 
 use super::WindowState;
 
@@ -76,12 +75,15 @@ impl WindowStateBuilder {
         self
     }
 
-    pub fn build(self) -> Result<WindowState> {
+    pub fn build(self) -> Result<WindowState, LayerShikaError> {
         let platform = CustomSlintPlatform::new(Rc::clone(
-            self.window.as_ref().context("Window is required")?,
+            self.window
+                .as_ref()
+                .ok_or_else(|| LayerShikaError::InvalidInput("Window is required".into()))?,
         ));
-        slint::platform::set_platform(Box::new(platform))
-            .map_err(|e| anyhow::anyhow!("Failed to set platform: {:?}", e))?;
+        slint::platform::set_platform(Box::new(platform)).map_err(|e| {
+            LayerShikaError::PlatformSetup(format!("Failed to set platform: {e:?}"))
+        })?;
 
         WindowState::new(self)
     }

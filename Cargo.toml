@@ -33,7 +33,6 @@ module_name_repetitions = "allow"
 unwrap_used = "warn"
 
 [dependencies]
-anyhow = "1.0.86"
 glutin = { version = "0.32.0", default-features = false, features = [
     "wayland",
 ] }
@@ -45,4 +44,5 @@ slint = { version = "1.7.2", default-features = false, features = [
 ] }
 slint-interpreter = "1.7.2"
 smithay-client-toolkit = "0.19.2"
+thiserror = "1.0.63"
 wayland-client = "0.31.5"

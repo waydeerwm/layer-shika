@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use crate::errors::LayerShikaError;
 use log::info;
 use slint::{
     platform::{femtovg_renderer::FemtoVGRenderer, Renderer, WindowAdapter, WindowEvent},
@@ -34,14 +34,14 @@ impl FemtoVGWindow {
         })
     }
 
-    pub fn render_frame_if_dirty(&self) -> Result<()> {
+    pub fn render_frame_if_dirty(&self) -> Result<(), LayerShikaError> {
         if matches!(
             self.render_state.replace(RenderState::Clean),
             RenderState::Dirty
         ) {
             self.renderer
                 .render()
-                .map_err(|e| anyhow!("Error rendering frame: {}", e))?;
+                .map_err(|e| LayerShikaError::Rendering(format!("Error rendering frame: {e}")))?;
         }
         Ok(())
     }
