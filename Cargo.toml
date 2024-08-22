@@ -6,20 +6,7 @@ description = "A layer shell library crate with Slint UI"
 license = "AGPL-3.0-or-later"
 repository = "https://codeberg.org/dyrland/layer-shika"
 readme = "README.md"
-keywords = [
-    "layer-shell",
-    "wayland",
-    "slint",
-    "layer",
-    "shell",
-    "gui",
-    "ui",
-    "compositor",
-    "femtovg",
-    "smithay",
-    "wlroots",
-    "sway",
-]
+keywords = ["layer-shell", "wayland", "slint", "femtovg", "smithay"]
 categories = ["GUI"]
 
 [lints.clippy]
