@@ -1,10 +1,10 @@
 # layer-shika
 
-[Main repo](https://codeberg.org/dyrland/layer-shika) | [Mirror](https://git.dren.dog/dyrland/layer-shika)
+[Main repo](https://codeberg.org/waydeer/layer-shika) | [Mirror](https://git.dren.dog/waydeer/layer-shika)
 
 ## ⚠️ WORK IN PROGRESS ⚠️
 
-Oh deer! 🦌 You've stumbled upon `layer-shika`, a rust library crate that provides a layer shell implementation for wayland compositors, using slint for the UI. It allows you to create overlay windows and panels or bars that integrate seamlessly with wayland-based desktop environments.
+Oh deer! 🦌 You've stumbled upon `layer-shika`, a rust library crate that provides a layer shell implementation for wayland compositors, using slint for the GUI. It allows you to create overlay windows and panels or bars that integrate seamlessly with wayland-based desktop environments.
 
 Please note that this library is currently in early development and is not yet ready for production use.
 
