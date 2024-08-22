@@ -7,7 +7,7 @@ license = "AGPL-3.0-or-later"
 repository = "https://codeberg.org/waydeer/layer-shika"
 readme = "README.md"
 keywords = ["layer-shell", "wayland", "slint", "femtovg", "smithay"]
-categories = ["GUI"]
+categories = ["gui"]
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
