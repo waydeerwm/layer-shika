@@ -1,6 +1,6 @@
 # layer-shika
 
-[Main repo](https://codeberg.org/waydeer/layer-shika) | [Mirror](https://git.dren.dog/waydeer/layer-shika)
+[Main repo](https://codeberg.org/waydeer/layer-shika) | [Mirror](https://git.dren.dog/waydeer/layer-shika) | [Temp mirror (github)](https://github.com/waydeerwm/layer-shika)
 
 ## ⚠️ WORK IN PROGRESS ⚠️
 
