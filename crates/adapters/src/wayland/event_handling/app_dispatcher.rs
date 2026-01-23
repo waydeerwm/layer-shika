@@ -1,10 +1,10 @@
+use crate::logger;
 use crate::wayland::session_lock::LockSurfaceOutputContext;
 use crate::wayland::surfaces::app_state::AppState;
 use crate::wayland::surfaces::display_metrics::DisplayMetrics;
 use crate::wayland::surfaces::surface_state::SurfaceState;
 use layer_shika_domain::value_objects::output_handle::OutputHandle;
 use layer_shika_domain::value_objects::output_info::OutputGeometry;
-use log::{debug, info};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::{
     zwlr_layer_shell_v1::ZwlrLayerShellV1,
     zwlr_layer_surface_v1::{self, ZwlrLayerSurfaceV1},
@@ -58,13 +58,14 @@ impl Dispatch<ZwlrLayerSurfaceV1, ()> for AppState {
                 width,
                 height,
             } => {
-                info!(
+                logger::info!(
                     "Layer surface configured with compositor size: {}x{}",
-                    width, height
+                    width,
+                    height
                 );
                 let layer_surface_id = layer_surface.id();
                 let Some(surface) = state.get_output_by_layer_surface_mut(&layer_surface_id) else {
-                    info!(
+                    logger::info!(
                         "Could not find window for layer surface {:?}",
                         layer_surface_id
                     );
@@ -111,9 +112,12 @@ impl Dispatch<WlOutput, ()> for AppState {
             } => {
                 let is_current = mode_flags.contains(wl_output::Mode::Current);
                 let is_preferred = mode_flags.contains(wl_output::Mode::Preferred);
-                info!(
+                logger::info!(
                     "WlOutput mode: {}x{} (current: {}, preferred: {})",
-                    width, height, is_current, is_preferred
+                    width,
+                    height,
+                    is_current,
+                    is_preferred
                 );
                 if is_current {
                     for surface in state.all_surfaces_for_output_mut(&output_id) {
@@ -122,10 +126,10 @@ impl Dispatch<WlOutput, ()> for AppState {
                 }
             }
             wl_output::Event::Mode { .. } => {
-                debug!("WlOutput mode event with unknown flags value");
+                logger::debug!("WlOutput mode event with unknown flags value");
             }
             wl_output::Event::Description { ref description } => {
-                info!("WlOutput description: {description:?}");
+                logger::info!("WlOutput description: {description:?}");
                 if let Some(handle) = handle {
                     if let Some(info) = state.get_output_info_mut(handle) {
                         info.set_description(description.clone());
@@ -133,7 +137,7 @@ impl Dispatch<WlOutput, ()> for AppState {
                 }
             }
             wl_output::Event::Scale { ref factor } => {
-                info!("WlOutput factor scale: {factor:?}");
+                logger::info!("WlOutput factor scale: {factor:?}");
                 if let Some(handle) = handle {
                     if let Some(info) = state.get_output_info_mut(handle) {
                         info.set_scale(*factor);
@@ -141,7 +145,7 @@ impl Dispatch<WlOutput, ()> for AppState {
                 }
             }
             wl_output::Event::Name { ref name } => {
-                info!("WlOutput name: {name:?}");
+                logger::info!("WlOutput name: {name:?}");
                 if let Some(handle) = handle {
                     if let Some(info) = state.get_output_info_mut(handle) {
                         info.set_name(name.clone());
@@ -158,7 +162,7 @@ impl Dispatch<WlOutput, ()> for AppState {
                 model,
                 transform,
             } => {
-                info!(
+                logger::info!(
                     "WlOutput geometry: x={x}, y={y}, physical_width={physical_width}, physical_height={physical_height}, subpixel={subpixel:?}, make={make:?}, model={model:?}, transform={transform:?}"
                 );
                 if let Some(handle) = handle {
@@ -176,21 +180,21 @@ impl Dispatch<WlOutput, ()> for AppState {
                 }
             }
             wl_output::Event::Done => {
-                info!("WlOutput done for output {:?}", output_id);
+                logger::info!("WlOutput done for output {:?}", output_id);
 
                 if let Some(manager) = state.output_manager() {
                     let manager_ref = manager.borrow();
                     if manager_ref.has_pending_output(&output_id) {
                         drop(manager_ref);
 
-                        info!(
+                        logger::info!(
                             "Output {:?} configuration complete, finalizing...",
                             output_id
                         );
 
                         let manager_ref = manager.borrow();
                         if let Err(e) = manager_ref.finalize_output(&output_id, state, qhandle) {
-                            info!("Failed to finalize output {:?}: {e}", output_id);
+                            logger::info!("Failed to finalize output {:?}: {e}", output_id);
                         }
                     }
                 }
@@ -444,7 +448,7 @@ impl Dispatch<WpFractionalScaleV1, ()> for AppState {
     ) {
         if let wp_fractional_scale_v1::Event::PreferredScale { scale } = event {
             let scale_float = DisplayMetrics::scale_factor_from_120ths(scale);
-            info!("Fractional scale received: {scale_float} ({scale}x)");
+            logger::info!("Fractional scale received: {scale_float} ({scale}x)");
 
             for surface in state.all_outputs_mut() {
                 surface.handle_fractional_scale(proxy, scale);
@@ -499,7 +503,7 @@ impl Dispatch<XdgPopup, ()> for AppState {
                 }
             }
             xdg_popup::Event::PopupDone => {
-                info!("XdgPopup dismissed by compositor");
+                logger::info!("XdgPopup dismissed by compositor");
                 let popup_id = xdg_popup.id();
 
                 for surface in state.all_outputs_mut() {
@@ -515,13 +519,13 @@ impl Dispatch<XdgPopup, ()> for AppState {
                 }
             }
             xdg_popup::Event::Repositioned { token } => {
-                info!("XdgPopup repositioned with token {token}");
+                logger::info!("XdgPopup repositioned with token {token}");
 
                 let popup_id = xdg_popup.id();
                 for surface in state.all_outputs_mut() {
                     if let Some(popup_manager) = surface.popup_manager() {
                         if let Some(handle) = popup_manager.find_by_xdg_popup(&popup_id) {
-                            info!("Committing popup surface after reposition");
+                            logger::info!("Committing popup surface after reposition");
                             popup_manager.commit_popup_surface(handle.key());
                             break;
                         }
@@ -572,7 +576,7 @@ impl Dispatch<WlRegistry, GlobalListContents> for AppState {
                 version,
             } => {
                 if interface == "wl_output" {
-                    info!(
+                    logger::info!(
                         "Hot-plugged output detected! Binding wl_output with name {name}, version {version}"
                     );
 
@@ -583,24 +587,24 @@ impl Dispatch<WlRegistry, GlobalListContents> for AppState {
                     if let Some(manager) = state.output_manager() {
                         let mut manager_ref = manager.borrow_mut();
                         let handle = manager_ref.register_output(output, qhandle);
-                        info!("Registered hot-plugged output with handle {handle:?}");
+                        logger::info!("Registered hot-plugged output with handle {handle:?}");
 
                         state.register_registry_name(name, output_id);
                         if let Err(err) =
                             state.handle_output_added_for_lock(&output_for_lock, qhandle)
                         {
-                            info!("Failed to add session lock surface for output: {err}");
+                            logger::info!("Failed to add session lock surface for output: {err}");
                         }
                     } else {
-                        info!("No output manager available yet (startup initialization)");
+                        logger::info!("No output manager available yet (startup initialization)");
                     }
                 }
             }
             Event::GlobalRemove { name } => {
-                info!("Registry global removed: name {name}");
+                logger::info!("Registry global removed: name {name}");
 
                 if let Some(output_id) = state.unregister_registry_name(name) {
-                    info!("Output with registry name {name} removed, cleaning up...");
+                    logger::info!("Output with registry name {name} removed, cleaning up...");
 
                     state.handle_output_removed_for_lock(&output_id);
 
@@ -706,7 +710,7 @@ macro_rules! impl_empty_dispatch_app {
                     _conn: &Connection,
                     _qhandle: &QueueHandle<Self>,
                 ) {
-                  debug!("Implement empty dispatch event for {:?}", stringify!($t));
+                  logger::debug!("Implement empty dispatch event for {:?}", stringify!($t));
                 }
             }
         )+

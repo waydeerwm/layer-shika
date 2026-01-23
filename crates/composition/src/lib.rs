@@ -61,6 +61,17 @@ pub use surface_registry::{SurfaceDefinition, SurfaceEntry, SurfaceMetadata, Sur
 
 pub use shell_config::{CompiledUiSource, ShellConfig, SurfaceComponentConfig};
 
+pub(crate) mod logger {
+    #[cfg(all(feature = "use-log", feature = "use-tracing"))]
+    compile_error!("Cannot use both logging backend at one time");
+
+    #[cfg(feature = "use-log")]
+    pub use log::{debug, error, info, warn};
+
+    #[cfg(feature = "use-tracing")]
+    pub use tracing::{debug, error, info, warn};
+}
+
 pub mod calloop {
     pub use layer_shika_adapters::platform::calloop::*;
 }

@@ -1,5 +1,7 @@
-use crate::wayland::{config::LayerSurfaceConfig, surfaces::app_state::AppState};
-use log::info;
+use crate::{
+    logger,
+    wayland::{config::LayerSurfaceConfig, surfaces::app_state::AppState},
+};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::{
     zwlr_layer_shell_v1::{Layer, ZwlrLayerShellV1},
     zwlr_layer_surface_v1::ZwlrLayerSurfaceV1,
@@ -55,12 +57,12 @@ impl SurfaceCtx {
         ));
 
         let fractional_scale = setup_params.fractional_scale_manager.map(|manager| {
-            info!("Creating fractional scale object for surface");
+            logger::info!("Creating fractional scale object for surface");
             Rc::new(manager.get_fractional_scale(&surface, setup_params.queue_handle, ()))
         });
 
         let viewport = setup_params.viewporter.map(|vp| {
-            info!("Creating viewport for surface");
+            logger::info!("Creating viewport for surface");
             Rc::new(vp.get_viewport(&surface, setup_params.queue_handle, ()))
         });
 

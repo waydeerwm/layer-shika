@@ -1,7 +1,7 @@
 // TODO: Maybe refactor to reuse the layer shell selector
 
 use crate::{
-    Error,
+    Error, logger,
     selector::{Selector, SurfaceInfo},
     slint_interpreter::{ComponentInstance, Value},
 };
@@ -83,7 +83,11 @@ impl<'a> LockSelection<'a> {
                 match component.get_property(name) {
                     Ok(value) => values.push(value),
                     Err(e) => {
-                        log::error!("Failed to get property '{}' from lock surface: {}", name, e);
+                        logger::error!(
+                            "Failed to get property '{}' from lock surface: {}",
+                            name,
+                            e
+                        );
                         result = Err(Error::Domain(DomainError::Configuration {
                             message: format!("Failed to get property '{}': {}", name, e),
                         }));

@@ -3,13 +3,13 @@ use crate::rendering::egl::context_factory::RenderContextFactory;
 use crate::rendering::femtovg::popup_window::PopupWindow;
 use crate::rendering::femtovg::renderable_window::{FractionalScaleConfig, RenderableWindow};
 use crate::wayland::surfaces::display_metrics::{DisplayMetrics, SharedDisplayMetrics};
+use crate::logger;
 use layer_shika_domain::dimensions::LogicalSize as DomainLogicalSize;
 use layer_shika_domain::surface_dimensions::SurfaceDimensions;
 use layer_shika_domain::value_objects::handle::PopupHandle;
 use layer_shika_domain::value_objects::popup_behavior::ConstraintAdjustment;
 use layer_shika_domain::value_objects::popup_config::PopupConfig;
 use layer_shika_domain::value_objects::popup_position::PopupPosition;
-use log::info;
 use slint::{platform::femtovg_renderer::FemtoVGRenderer, PhysicalSize};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use std::cell::{Cell, RefCell};
@@ -107,7 +107,7 @@ struct ActivePopup {
 
 impl Drop for ActivePopup {
     fn drop(&mut self) {
-        info!("ActivePopup being dropped - cleaning up resources");
+        logger::info!("ActivePopup being dropped - cleaning up resources");
         self.window.cleanup_resources();
         self.surface.destroy();
     }
@@ -254,9 +254,11 @@ impl PopupManager {
         })?;
 
         let scale_factor = self.scale_factor();
-        info!(
+        logger::info!(
             "Creating popup window with scale factor {scale_factor}, size=({} x {}), position={:?}",
-            params.width, params.height, params.position
+            params.width,
+            params.height,
+            params.position
         );
 
         let output_size = self.output_size();
@@ -280,7 +282,7 @@ impl PopupManager {
             popup_dimensions.physical_height(),
         );
 
-        info!("Popup physical size: {popup_size:?}");
+        logger::info!("Popup physical size: {popup_size:?}");
 
         let wayland_popup_surface =
             PopupSurface::create(&super::popup_surface::PopupSurfaceParams {
@@ -300,7 +302,7 @@ impl PopupManager {
         if params.grab {
             wayland_popup_surface.grab(&self.context.seat, params.last_pointer_serial);
         } else {
-            info!("Skipping popup grab (grab disabled in request)");
+            logger::info!("Skipping popup grab (grab disabled in request)");
             wayland_popup_surface.surface.commit();
         }
 
@@ -326,7 +328,7 @@ impl PopupManager {
         popup_window.set_popup_id(popup_id.to_handle());
 
         let config = FractionalScaleConfig::new(params.width, params.height, scale_factor);
-        info!(
+        logger::info!(
             "Popup using render scale {} (from {}), render_physical {}x{}",
             config.render_scale,
             scale_factor,
@@ -344,7 +346,7 @@ impl PopupManager {
             },
         );
 
-        info!("Popup window created successfully with id {:?}", popup_id);
+        logger::info!("Popup window created successfully with id {:?}", popup_id);
 
         Ok(popup_window)
     }
@@ -401,7 +403,7 @@ impl PopupManager {
 
     fn destroy_popup(&self, id: PopupId) {
         if let Some(_popup) = self.state.borrow_mut().popups.remove(&id) {
-            info!("Destroying popup with id {:?}", id);
+            logger::info!("Destroying popup with id {:?}", id);
             // cleanup happens automatically via ActivePopup::drop()
         }
     }
@@ -507,9 +509,11 @@ impl PopupManager {
             if let Some(popup_surface) = self.get_popup_window(popup_key) {
                 let new_scale_factor = DisplayMetrics::scale_factor_from_120ths(scale_120ths);
                 let render_scale = FractionalScaleConfig::render_scale(new_scale_factor);
-                info!(
+                logger::info!(
                     "Updating popup scale factor to {} (render scale {}, from {}x)",
-                    new_scale_factor, render_scale, scale_120ths
+                    new_scale_factor,
+                    render_scale,
+                    scale_120ths
                 );
                 popup_surface.set_scale_factor(render_scale);
                 popup_surface.request_redraw();

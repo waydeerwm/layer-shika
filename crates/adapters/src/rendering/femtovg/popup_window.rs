@@ -1,10 +1,10 @@
 use super::renderable_window::{RenderState, RenderableWindow};
 use crate::errors::{RenderingError, Result};
+use crate::logger;
 use crate::wayland::surfaces::popup_manager::OnCloseCallback;
 use core::ops::Deref;
 use layer_shika_domain::dimensions::LogicalSize;
 use layer_shika_domain::value_objects::handle::PopupHandle;
-use log::info;
 use slint::{
     PhysicalSize, Window, WindowSize,
     platform::{Renderer, WindowAdapter, WindowEvent, femtovg_renderer::FemtoVGRenderer},
@@ -73,27 +73,27 @@ impl PopupWindow {
     }
 
     pub(crate) fn cleanup_resources(&self) {
-        info!("Cleaning up popup window resources to break reference cycles");
+        logger::info!("Cleaning up popup window resources to break reference cycles");
 
         if let Err(e) = self.window.hide() {
-            info!("Failed to hide popup window: {e}");
+            logger::info!("Failed to hide popup window: {e}");
         }
 
         if let Some(component) = self.component_instance.borrow_mut().take() {
-            info!("Dropping ComponentInstance to break reference cycle");
+            logger::info!("Dropping ComponentInstance to break reference cycle");
             drop(component);
         }
 
-        info!("Popup window resource cleanup complete");
+        logger::info!("Popup window resource cleanup complete");
     }
 
     pub fn close_popup(&self) {
-        info!("Closing popup window - cleaning up resources");
+        logger::info!("Closing popup window - cleaning up resources");
 
         self.cleanup_resources();
 
         if let Some(handle) = self.popup_handle.get() {
-            info!("Destroying popup with handle {:?}", handle);
+            logger::info!("Destroying popup with handle {:?}", handle);
             if let Some(on_close) = self.on_close.get() {
                 on_close(handle);
             }
@@ -101,7 +101,7 @@ impl PopupWindow {
 
         self.popup_handle.set(None);
 
-        info!("Popup window cleanup complete");
+        logger::info!("Popup window cleanup complete");
     }
 
     pub fn popup_key(&self) -> Option<usize> {
@@ -109,16 +109,16 @@ impl PopupWindow {
     }
 
     pub fn mark_configured(&self) {
-        info!("Popup window marked as configured");
+        logger::info!("Popup window marked as configured");
 
         if matches!(
             self.popup_render_state.get(),
             PopupRenderState::Unconfigured
         ) {
-            info!("Transitioning from Unconfigured to ReadyDirty state");
+            logger::info!("Transitioning from Unconfigured to ReadyDirty state");
             self.popup_render_state.set(PopupRenderState::ReadyDirty);
         } else {
-            info!(
+            logger::info!(
                 "Preserving current render state to avoid overwriting: {:?}",
                 self.popup_render_state.get()
             );
@@ -133,10 +133,10 @@ impl PopupWindow {
     }
 
     pub fn set_component_instance(&self, instance: ComponentInstance) {
-        info!("Setting component instance for popup window");
+        logger::info!("Setting component instance for popup window");
         let mut comp = self.component_instance.borrow_mut();
         if comp.is_some() {
-            info!("Component instance already set for popup window - replacing");
+            logger::info!("Component instance already set for popup window - replacing");
         }
         *comp = Some(instance);
 
@@ -149,14 +149,15 @@ impl PopupWindow {
         let current_size = self.logical_size.get();
 
         if current_size == new_size {
-            info!(
+            logger::info!(
                 "Popup resize skipped - size unchanged: {}x{}",
-                width, height
+                width,
+                height
             );
             return false;
         }
 
-        info!(
+        logger::info!(
             "Requesting popup resize from {}x{} to {}x{}",
             current_size.width(),
             current_size.height(),
@@ -182,11 +183,11 @@ impl RenderableWindow for PopupWindow {
     fn render_frame_if_dirty(&self) -> Result<()> {
         match self.popup_render_state.get() {
             PopupRenderState::Unconfigured => {
-                info!("Popup not yet configured, skipping render");
+                logger::info!("Popup not yet configured, skipping render");
                 return Ok(());
             }
             PopupRenderState::Repositioning => {
-                info!("Popup repositioning in progress, skipping render");
+                logger::info!("Popup repositioning in progress, skipping render");
                 return Ok(());
             }
             PopupRenderState::ReadyClean => {
@@ -212,7 +213,7 @@ impl RenderableWindow for PopupWindow {
                 self.popup_render_state.get(),
                 PopupRenderState::NeedsRelayout
             ) {
-                info!("Popup needs relayout, requesting additional render");
+                logger::info!("Popup needs relayout, requesting additional render");
                 self.popup_render_state.set(PopupRenderState::ReadyDirty);
                 RenderableWindow::request_redraw(self);
             } else {
@@ -223,7 +224,7 @@ impl RenderableWindow for PopupWindow {
     }
 
     fn set_scale_factor(&self, scale_factor: f32) {
-        info!("Setting popup scale factor to {scale_factor}");
+        logger::info!("Setting popup scale factor to {scale_factor}");
         self.scale_factor.set(scale_factor);
         self.window()
             .dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor });
@@ -276,13 +277,13 @@ impl Deref for PopupWindow {
 
 impl Drop for PopupWindow {
     fn drop(&mut self) {
-        info!("PopupWindow being dropped - cleaning up resources");
+        logger::info!("PopupWindow being dropped - cleaning up resources");
 
         if let Some(component) = self.component_instance.borrow_mut().take() {
-            info!("Dropping any remaining ComponentInstance in PopupWindow::drop");
+            logger::info!("Dropping any remaining ComponentInstance in PopupWindow::drop");
             drop(component);
         }
 
-        info!("PopupWindow drop complete");
+        logger::info!("PopupWindow drop complete");
     }
 }

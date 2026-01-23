@@ -1,5 +1,4 @@
-use crate::wayland::session_lock::lock_context::LockSurfaceParams;
-use log::info;
+use crate::{logger, wayland::session_lock::lock_context::LockSurfaceParams};
 use std::rc::Rc;
 use wayland_client::{Proxy, backend::ObjectId, protocol::wl_surface::WlSurface};
 use wayland_protocols::ext::session_lock::v1::client::ext_session_lock_surface_v1::ExtSessionLockSurfaceV1;
@@ -28,12 +27,12 @@ impl LockSurface {
         ));
 
         let fractional_scale = params.fractional_scale_manager.map(|manager| {
-            info!("Creating fractional scale object for lock surface");
+            logger::info!("Creating fractional scale object for lock surface");
             Rc::new(manager.get_fractional_scale(&surface, params.queue_handle, ()))
         });
 
         let viewport = params.viewporter.map(|vp| {
-            info!("Creating viewport for lock surface");
+            logger::info!("Creating viewport for lock surface");
             Rc::new(vp.get_viewport(&surface, params.queue_handle, ()))
         });
 
@@ -51,7 +50,7 @@ impl LockSurface {
     }
 
     pub fn handle_configure(&mut self, serial: u32, width: u32, height: u32) {
-        info!("Lock surface configured with compositor size: {width}x{height}");
+        logger::info!("Lock surface configured with compositor size: {width}x{height}");
         self.session_surface.ack_configure(serial);
         self.width = width;
         self.height = height;

@@ -9,7 +9,7 @@ use crate::system::{
     ShellControl, SurfaceCommand, SurfaceTarget,
 };
 use crate::value_conversion::IntoValue;
-use crate::{Error, Result};
+use crate::{Error, Result, logger};
 use layer_shika_adapters::errors::EventLoopError;
 use layer_shika_adapters::platform::calloop::channel;
 use layer_shika_adapters::platform::slint_interpreter::{
@@ -393,7 +393,7 @@ impl Shell {
         compilation_result: Rc<CompilationResult>,
         definitions: Vec<SurfaceDefinition>,
     ) -> Result<Self> {
-        log::info!("Creating Shell with {} windows", definitions.len());
+        logger::info!("Creating Shell with {} windows", definitions.len());
 
         for def in &definitions {
             def.config.validate().map_err(Error::Domain)?;
@@ -401,7 +401,7 @@ impl Shell {
 
         match definitions.len() {
             0 => {
-                log::info!("Creating minimal shell without layer surfaces");
+                logger::info!("Creating minimal shell without layer surfaces");
                 Self::new_minimal(compilation_result)
             }
             1 => {
@@ -457,7 +457,7 @@ impl Shell {
 
         shell.setup_command_handler(receiver)?;
 
-        log::info!("Shell created (single-window mode)");
+        logger::info!("Shell created (single-window mode)");
 
         Ok(shell)
     }
@@ -524,7 +524,7 @@ impl Shell {
 
         shell.setup_command_handler(receiver)?;
 
-        log::info!(
+        logger::info!(
             "Shell created (multi-surface mode) with surfaces: {:?}",
             shell.surface_names()
         );
@@ -555,7 +555,7 @@ impl Shell {
 
         shell.setup_command_handler(receiver)?;
 
-        log::info!("Shell created (minimal mode - no layer surfaces)");
+        logger::info!("Shell created (minimal mode - no layer surfaces)");
 
         Ok(shell)
     }
@@ -582,7 +582,7 @@ impl Shell {
                         }
                         ShellCommand::Render => {
                             if let Err(e) = ctx.render_frame_if_dirty() {
-                                log::error!("Failed to render frame: {}", e);
+                                logger::error!("Failed to render frame: {}", e);
                             }
                         }
                     }
@@ -608,12 +608,12 @@ impl Shell {
         match command {
             PopupCommand::Show { handle, config } => {
                 if let Err(e) = ctx.show_popup(handle, &config) {
-                    log::error!("Failed to show popup: {}", e);
+                    logger::error!("Failed to show popup: {}", e);
                 }
             }
             PopupCommand::Close(handle) => {
                 if let Err(e) = ctx.close_popup(handle) {
-                    log::error!("Failed to close popup: {}", e);
+                    logger::error!("Failed to close popup: {}", e);
                 }
             }
             PopupCommand::Resize {
@@ -622,7 +622,7 @@ impl Shell {
                 height,
             } => {
                 if let Err(e) = ctx.resize_popup(handle, width, height) {
-                    log::error!("Failed to resize popup: {}", e);
+                    logger::error!("Failed to resize popup: {}", e);
                 }
             }
         }
@@ -638,19 +638,19 @@ impl Shell {
                 component_name,
                 config,
             } => {
-                log::info!("Processing SessionLockCommand::Activate");
+                logger::info!("Processing SessionLockCommand::Activate");
                 if let Err(e) = ctx.activate_session_lock(component_name, config.clone()) {
-                    log::error!("Failed to activate session lock: {}", e);
+                    logger::error!("Failed to activate session lock: {}", e);
                 } else {
-                    log::info!("Session lock activated successfully");
+                    logger::info!("Session lock activated successfully");
                 }
             }
             SessionLockCommand::Deactivate => {
-                log::info!("Processing SessionLockCommand::Deactivate");
+                logger::info!("Processing SessionLockCommand::Deactivate");
                 if let Err(e) = ctx.deactivate_session_lock() {
-                    log::error!("Failed to deactivate session lock: {}", e);
+                    logger::error!("Failed to deactivate session lock: {}", e);
                 } else {
-                    log::info!("Session lock deactivated successfully");
+                    logger::info!("Session lock deactivated successfully");
                 }
             }
         }
@@ -665,7 +665,7 @@ impl Shell {
                 if let Some(surface) = ctx.surface_by_instance_mut(id.surface(), id.output()) {
                     vec![surface]
                 } else {
-                    log::warn!(
+                    logger::warn!(
                         "Surface instance not found: handle {:?} on output {:?}",
                         id.surface(),
                         id.output()
@@ -687,7 +687,7 @@ impl Shell {
         width: u32,
         height: u32,
     ) {
-        log::debug!(
+        logger::debug!(
             "Surface command: Resize {:?} to {}x{}",
             target,
             width,
@@ -709,7 +709,7 @@ impl Shell {
     ) where
         F: Fn(&LayerSurfaceHandle<'_>),
     {
-        log::debug!("Surface command: {} {:?}", operation, target);
+        logger::debug!("Surface command: {} {:?}", operation, target);
         for surface in Self::resolve_surface_target(ctx, target) {
             let handle = LayerSurfaceHandle::from_window_state(surface);
             apply(&handle);
@@ -722,10 +722,10 @@ impl Shell {
         target: &SurfaceTarget,
         config: &SurfaceConfig,
     ) {
-        log::debug!("Surface command: ApplyConfig {:?}", target);
+        logger::debug!("Surface command: ApplyConfig {:?}", target);
 
         if let Err(e) = config.validate() {
-            log::error!("Invalid surface configuration: {}", e);
+            logger::error!("Invalid surface configuration: {}", e);
             return;
         }
 
@@ -787,22 +787,22 @@ impl Shell {
                 );
             }
             SurfaceCommand::SetOutputPolicy { target, policy } => {
-                log::debug!(
+                logger::debug!(
                     "Surface command: SetOutputPolicy {:?} to {:?}",
                     target,
                     policy
                 );
-                log::warn!(
+                logger::warn!(
                     "SetOutputPolicy is not yet implemented - requires runtime surface spawning"
                 );
             }
             SurfaceCommand::SetScaleFactor { target, factor } => {
-                log::debug!(
+                logger::debug!(
                     "Surface command: SetScaleFactor {:?} to {:?}",
                     target,
                     factor
                 );
-                log::warn!(
+                logger::warn!(
                     "SetScaleFactor is not yet implemented - requires runtime surface property updates"
                 );
             }
@@ -812,7 +812,7 @@ impl Shell {
         }
 
         if let Err(e) = ctx.render_frame_if_dirty() {
-            log::error!("Failed to render frame after surface command: {}", e);
+            logger::error!("Failed to render frame after surface command: {}", e);
         }
     }
 
@@ -869,7 +869,7 @@ impl Shell {
 
     /// Starts the event loop and runs the shell until exit
     pub fn run(&mut self) -> Result<()> {
-        log::info!(
+        logger::info!(
             "Starting Shell event loop with {} windows",
             self.registry.len()
         );
@@ -911,7 +911,7 @@ impl Shell {
         let entry = SurfaceEntry::new(surface_handle, definition.component.clone(), definition);
         self.registry.insert(entry)?;
 
-        log::info!(
+        logger::info!(
             "Spawned surface with handle {:?}, created {} output instances",
             surface_handle,
             handles.len()
@@ -931,7 +931,7 @@ impl Shell {
         let mut system = self.inner.borrow_mut();
         system.despawn_surface(&entry.name)?;
 
-        log::info!(
+        logger::info!(
             "Despawned surface '{}' with handle {:?}",
             entry.name,
             handle
@@ -1125,7 +1125,7 @@ impl Shell {
                             handler_rc(ctx).into_value()
                         })
                 {
-                    log::error!(
+                    logger::error!(
                         "Failed to register callback '{}' on surface '{}': {}",
                         callback_name,
                         surface_name,
@@ -1186,7 +1186,7 @@ impl Shell {
                             handler_rc(args, ctx).into_value()
                         })
                 {
-                    log::error!(
+                    logger::error!(
                         "Failed to register callback '{}' on surface '{}': {}",
                         callback_name,
                         surface_name,

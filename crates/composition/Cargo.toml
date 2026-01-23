@@ -16,6 +16,12 @@ workspace = true
 [dependencies]
 layer-shika-adapters.workspace = true
 layer-shika-domain.workspace = true
-log.workspace = true
+log = { workspace = true, optional = true }
 spin_on.workspace = true
 thiserror.workspace = true
+tracing = { workspace = true, optional = true }
+
+[features]
+default = ["use-log"]
+use-log = ["dep:log", "layer-shika-adapters/use-log"]
+use-tracing = ["dep:tracing", "layer-shika-adapters/use-tracing"]

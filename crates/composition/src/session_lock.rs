@@ -1,5 +1,6 @@
 use crate::IntoValue;
 use crate::calloop::channel;
+use crate::logger;
 use crate::slint_interpreter::Value;
 use crate::system::{SessionLockCommand, ShellCommand};
 use crate::{Error, Result};
@@ -37,7 +38,7 @@ impl SessionLock {
     }
 
     pub fn activate(&self) -> Result<()> {
-        log::info!("Session lock activation called - queuing SessionLockCommand::Activate");
+        logger::info!("Session lock activation called - queuing SessionLockCommand::Activate");
 
         self.command_sender
             .send(ShellCommand::SessionLock(SessionLockCommand::Activate {
@@ -50,12 +51,12 @@ impl SessionLock {
                 })
             })?;
 
-        log::info!("SessionLockCommand::Activate queued successfully");
+        logger::info!("SessionLockCommand::Activate queued successfully");
         Ok(())
     }
 
     pub fn deactivate(&self) -> Result<()> {
-        log::info!("Session lock deactivation called - queuing SessionLockCommand::Deactivate");
+        logger::info!("Session lock deactivation called - queuing SessionLockCommand::Deactivate");
 
         self.command_sender
             .send(ShellCommand::SessionLock(SessionLockCommand::Deactivate))
@@ -65,7 +66,7 @@ impl SessionLock {
                 })
             })?;
 
-        log::info!("SessionLockCommand::Deactivate queued successfully");
+        logger::info!("SessionLockCommand::Deactivate queued successfully");
         Ok(())
     }
 

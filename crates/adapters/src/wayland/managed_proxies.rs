@@ -1,3 +1,4 @@
+use crate::logger;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use wayland_client::{
     protocol::{wl_keyboard::WlKeyboard, wl_pointer::WlPointer, wl_surface::WlSurface},
@@ -8,7 +9,6 @@ use wayland_protocols::wp::{
     viewporter::client::wp_viewport::WpViewport,
 };
 use std::{ops::Deref, rc::Rc};
-use log::{debug, error};
 
 pub struct ManagedWlPointer {
     pointer: Rc<WlPointer>,
@@ -35,10 +35,10 @@ impl Deref for ManagedWlPointer {
 
 impl Drop for ManagedWlPointer {
     fn drop(&mut self) {
-        debug!("Releasing WlPointer");
+        logger::debug!("Releasing WlPointer");
         self.pointer.release();
         if let Err(e) = self.connection.flush() {
-            error!("Failed to flush after releasing WlPointer: {e}");
+            logger::error!("Failed to flush after releasing WlPointer: {e}");
         }
     }
 }
@@ -68,10 +68,10 @@ impl Deref for ManagedWlKeyboard {
 
 impl Drop for ManagedWlKeyboard {
     fn drop(&mut self) {
-        debug!("Releasing WlKeyboard");
+        logger::debug!("Releasing WlKeyboard");
         self.keyboard.release();
         if let Err(e) = self.connection.flush() {
-            error!("Failed to flush after releasing WlKeyboard: {e}");
+            logger::error!("Failed to flush after releasing WlKeyboard: {e}");
         }
     }
 }
@@ -101,10 +101,10 @@ impl Deref for ManagedWlSurface {
 
 impl Drop for ManagedWlSurface {
     fn drop(&mut self) {
-        debug!("Destroying WlSurface");
+        logger::debug!("Destroying WlSurface");
         self.surface.destroy();
         if let Err(e) = self.connection.flush() {
-            error!("Failed to flush after destroying WlSurface: {e}");
+            logger::error!("Failed to flush after destroying WlSurface: {e}");
         }
     }
 }
@@ -138,10 +138,10 @@ impl Deref for ManagedZwlrLayerSurfaceV1 {
 
 impl Drop for ManagedZwlrLayerSurfaceV1 {
     fn drop(&mut self) {
-        debug!("Destroying ZwlrLayerSurfaceV1");
+        logger::debug!("Destroying ZwlrLayerSurfaceV1");
         self.layer_surface.destroy();
         if let Err(e) = self.connection.flush() {
-            error!("Failed to flush after destroying ZwlrLayerSurfaceV1: {e}");
+            logger::error!("Failed to flush after destroying ZwlrLayerSurfaceV1: {e}");
         }
     }
 }
@@ -178,10 +178,10 @@ impl Deref for ManagedWpFractionalScaleV1 {
 
 impl Drop for ManagedWpFractionalScaleV1 {
     fn drop(&mut self) {
-        debug!("Destroying WpFractionalScaleV1");
+        logger::debug!("Destroying WpFractionalScaleV1");
         self.fractional_scale.destroy();
         if let Err(e) = self.connection.flush() {
-            error!("Failed to flush after destroying WpFractionalScaleV1: {e}");
+            logger::error!("Failed to flush after destroying WpFractionalScaleV1: {e}");
         }
     }
 }
@@ -211,10 +211,10 @@ impl Deref for ManagedWpViewport {
 
 impl Drop for ManagedWpViewport {
     fn drop(&mut self) {
-        debug!("Destroying WpViewport");
+        logger::debug!("Destroying WpViewport");
         self.viewport.destroy();
         if let Err(e) = self.connection.flush() {
-            error!("Failed to flush after destroying WpViewport: {e}");
+            logger::error!("Failed to flush after destroying WpViewport: {e}");
         }
     }
 }

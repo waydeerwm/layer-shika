@@ -1,5 +1,6 @@
 use super::callbacks::{LockCallbackContext, LockCallbackExt, LockPropertyOperationExt};
 use crate::errors::Result;
+use crate::logger;
 use crate::rendering::femtovg::main_window::FemtoVGWindow;
 use crate::rendering::femtovg::renderable_window::{FractionalScaleConfig, RenderableWindow};
 use crate::rendering::slint_integration::platform::CustomSlintPlatform;
@@ -9,7 +10,6 @@ use crate::wayland::surfaces::display_metrics::DisplayMetrics;
 use layer_shika_domain::surface_dimensions::SurfaceDimensions;
 use layer_shika_domain::value_objects::output_handle::OutputHandle;
 use layer_shika_domain::value_objects::output_info::OutputInfo;
-use log::info;
 use slint::{
     LogicalPosition, LogicalSize, WindowSize,
     platform::{WindowAdapter, WindowEvent},
@@ -95,12 +95,12 @@ impl ActiveLockSurface {
         let dimensions = match SurfaceDimensions::calculate(width, height, context.scale_factor) {
             Ok(dimensions) => dimensions,
             Err(err) => {
-                info!("Failed to calculate lock surface dimensions: {err}");
+                logger::info!("Failed to calculate lock surface dimensions: {err}");
                 return;
             }
         };
         let scaling_mode = self.scaling_mode();
-        info!(
+        logger::info!(
             "Lock surface dimensions: logical {}x{}, physical {}x{}, scale {}, mode {:?}",
             dimensions.logical_width(),
             dimensions.logical_height(),
@@ -162,14 +162,14 @@ impl ActiveLockSurface {
             if let Err(err) =
                 callback.apply_with_context(component.component_instance(), &callback_context)
             {
-                info!(
+                logger::info!(
                     "Failed to register lock callback '{}': {err}",
                     callback.name()
                 );
             } else if callback.should_apply(&callback_context) {
-                info!("Registered lock callback '{}'", callback.name());
+                logger::info!("Registered lock callback '{}'", callback.name());
             } else {
-                info!(
+                logger::info!(
                     "Skipping callback '{}' due to selector filter (output {:?})",
                     callback.name(),
                     context.output_handle
@@ -180,19 +180,19 @@ impl ActiveLockSurface {
         for property_op in &context.property_operations {
             if property_op.should_apply(&callback_context) {
                 if let Err(err) = property_op.apply_to_component(component.component_instance()) {
-                    info!(
+                    logger::info!(
                         "Failed to set lock property '{}': {err}",
                         property_op.name()
                     );
                 } else {
-                    info!(
+                    logger::info!(
                         "Set lock property '{}' on output {:?}",
                         property_op.name(),
                         context.output_handle
                     );
                 }
             } else {
-                info!(
+                logger::info!(
                     "Skipping property '{}' due to selector filter (output {:?}, primary={:?})",
                     property_op.name(),
                     context.output_handle,
@@ -252,7 +252,7 @@ impl ActiveLockSurface {
         if let Err(err) =
             callback.apply_with_context(component.component_instance(), &callback_context)
         {
-            info!(
+            logger::info!(
                 "Failed to register lock callback '{}': {err}",
                 callback.name()
             );
@@ -283,7 +283,7 @@ impl ActiveLockSurface {
         if let Err(err) =
             property_op.apply_with_context(component.component_instance(), &callback_context)
         {
-            info!(
+            logger::info!(
                 "Failed to set lock property '{}': {err}",
                 property_op.name()
             );
@@ -314,7 +314,7 @@ impl ActiveLockSurface {
                     dimensions.logical_height() as f32,
                     scale_factor,
                 );
-                info!(
+                logger::info!(
                     "Lock FractionalWithViewport: render scale {} (from {}), physical {}x{}",
                     config.render_scale,
                     scale_factor,

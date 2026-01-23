@@ -4,8 +4,8 @@ use crate::wayland::managed_proxies::{
     ManagedWlSurface, ManagedZwlrLayerSurfaceV1, ManagedWpFractionalScaleV1, ManagedWpViewport,
 };
 use crate::wayland::surfaces::dimensions::SurfaceDimensionsExt;
+use crate::logger;
 use layer_shika_domain::surface_dimensions::SurfaceDimensions;
-use log::{error, info};
 use slint::PhysicalSize;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use std::rc::Rc;
@@ -97,7 +97,7 @@ impl<W: RenderableWindow> SurfaceRenderer<W> {
                     dimensions.logical_height() as f32,
                     scale_factor,
                 );
-                info!(
+                logger::info!(
                     "FractionalWithViewport: render scale {} (from {}), physical {}x{}",
                     config.render_scale,
                     scale_factor,
@@ -146,14 +146,14 @@ impl<W: RenderableWindow> SurfaceRenderer<W> {
 
     pub fn update_size(&mut self, width: u32, height: u32, scale_factor: f32) {
         if width == 0 || height == 0 {
-            info!("Skipping update_size with zero dimension: {width}x{height}");
+            logger::info!("Skipping update_size with zero dimension: {width}x{height}");
             return;
         }
 
         let dimensions = match SurfaceDimensions::calculate(width, height, scale_factor) {
             Ok(d) => d,
             Err(e) => {
-                error!("Failed to calculate surface dimensions: {e}");
+                logger::error!("Failed to calculate surface dimensions: {e}");
                 return;
             }
         };
@@ -177,7 +177,7 @@ impl<W: RenderableWindow> SurfaceRenderer<W> {
             _ => dimensions.to_slint_physical_size(),
         };
 
-        info!(
+        logger::info!(
             "Updating window size: logical {}x{}, physical {}x{}, render_physical {}x{}, scale {}, buffer_scale {}, mode {:?}",
             dimensions.logical_width(),
             dimensions.logical_height(),
@@ -193,7 +193,7 @@ impl<W: RenderableWindow> SurfaceRenderer<W> {
         self.configure_slint_window(&dimensions, scaling_mode, scale_factor);
         self.configure_wayland_surface(&dimensions, scaling_mode);
 
-        info!("Window physical size: {:?}", self.window.size());
+        logger::info!("Window physical size: {:?}", self.window.size());
 
         self.size = render_physical_size;
         self.logical_size = dimensions.to_slint_logical_size();

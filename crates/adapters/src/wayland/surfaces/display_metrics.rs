@@ -1,10 +1,10 @@
+use crate::logger;
 use layer_shika_domain::dimensions::{
     LogicalSize as DomainLogicalSize, PhysicalSize as DomainPhysicalSize,
     ScaleFactor as DomainScaleFactor,
 };
 use layer_shika_domain::errors::Result as DomainResult;
 use layer_shika_domain::surface_dimensions::SurfaceDimensions;
-use log::info;
 use slint::PhysicalSize;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -88,9 +88,11 @@ impl DisplayMetrics {
         let old_scale_factor = self.scale_factor();
 
         if (old_scale_factor - new_scale_factor).abs() > f32::EPSILON {
-            info!(
+            logger::info!(
                 "DisplayMetrics: Updating scale factor from {} to {} ({}x)",
-                old_scale_factor, new_scale_factor, scale_120ths
+                old_scale_factor,
+                new_scale_factor,
+                scale_120ths
             );
             self.surface.update_scale_factor(new_scale);
             self.recalculate_surface_size();
@@ -101,9 +103,10 @@ impl DisplayMetrics {
 
     pub fn update_output_size(&mut self, output_size: PhysicalSize) {
         if self.output_size != output_size {
-            info!(
+            logger::info!(
                 "DisplayMetrics: Updating output size from {:?} to {:?}",
-                self.output_size, output_size
+                self.output_size,
+                output_size
             );
             self.output_size = output_size;
             self.recalculate_surface_size();

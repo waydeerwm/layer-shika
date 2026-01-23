@@ -1,4 +1,7 @@
-use crate::errors::{EGLError, LayerShikaError, Result};
+use crate::{
+    errors::{EGLError, LayerShikaError, Result},
+    logger,
+};
 use glutin::{
     api::egl::{
         config::Config,
@@ -129,9 +132,9 @@ impl Drop for EGLContext {
     fn drop(&mut self) {
         if self.context.is_current() {
             if let Err(e) = self.context.make_not_current_in_place() {
-                log::error!("Failed to make EGL context not current during cleanup: {e}");
+                logger::error!("Failed to make EGL context not current during cleanup: {e}");
             } else {
-                log::info!("Successfully made EGL context not current during cleanup");
+                logger::info!("Successfully made EGL context not current during cleanup");
             }
         }
     }

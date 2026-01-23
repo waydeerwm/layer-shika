@@ -1,5 +1,5 @@
 use crate::{
-    Error, LayerSurfaceHandle, Shell,
+    Error, LayerSurfaceHandle, Shell, logger,
     selector::{Selector, SurfaceInfo},
     slint_interpreter::{ComponentInstance, Value},
 };
@@ -153,7 +153,7 @@ impl<'a> Selection<'a> {
                     Ok(()) => result.add_success(()),
                     Err(e) => {
                         let error_msg = format!("Failed to set property '{}': {}", name, e);
-                        log::error!(
+                        logger::error!(
                             "{} on surface {}[{:?}]",
                             error_msg,
                             info.name,
@@ -179,7 +179,7 @@ impl<'a> Selection<'a> {
                     Ok(value) => result.add_success(value),
                     Err(e) => {
                         let error_msg = format!("Failed to get property '{}': {}", name, e);
-                        log::error!(
+                        logger::error!(
                             "{} on surface {}[{:?}]",
                             error_msg,
                             info.name,

@@ -1,6 +1,6 @@
 use crate::event_loop::FromAppState;
 use crate::layer_surface::LayerSurfaceHandle;
-use crate::{Error, Result};
+use crate::{Error, Result, logger};
 use layer_shika_adapters::platform::calloop::channel;
 use layer_shika_adapters::platform::slint::ComponentHandle;
 use layer_shika_adapters::platform::slint_interpreter::{
@@ -739,16 +739,16 @@ impl EventDispatchContext<'_> {
     /// on the popup manager for immediate updates.
     #[allow(clippy::too_many_lines, clippy::cognitive_complexity)]
     pub fn show_popup(&mut self, handle: PopupHandle, config: &PopupConfig) -> Result<PopupHandle> {
-        log::info!("show_popup called for component '{}'", config.component);
+        logger::info!("show_popup called for component '{}'", config.component);
 
         let compilation_result = self.compilation_result().ok_or_else(|| {
-            log::error!("No compilation result available");
+            logger::error!("No compilation result available");
             Error::Domain(DomainError::Configuration {
                 message: "No compilation result available for popup creation".to_string(),
             })
         })?;
 
-        log::debug!(
+        logger::debug!(
             "Got compilation result, looking for component '{}'",
             config.component
         );
@@ -756,7 +756,7 @@ impl EventDispatchContext<'_> {
         let definition = compilation_result
             .component(&config.component)
             .ok_or_else(|| {
-                log::error!(
+                logger::error!(
                     "Component '{}' not found in compilation result",
                     config.component
                 );
@@ -765,17 +765,17 @@ impl EventDispatchContext<'_> {
                 })
             })?;
 
-        log::debug!("Found component definition for '{}'", config.component);
+        logger::debug!("Found component definition for '{}'", config.component);
 
         let is_using_active = self.app_state.active_output().is_some();
         let active_surface = self.active_or_primary_output().ok_or_else(|| {
-            log::error!("No active or primary output available");
+            logger::error!("No active or primary output available");
             Error::Domain(DomainError::OutputNotFound {
                 message: "No active or primary output available".to_string(),
             })
         })?;
 
-        log::info!(
+        logger::info!(
             "Creating popup on {} output",
             if is_using_active { "active" } else { "primary" }
         );
@@ -797,7 +797,7 @@ impl EventDispatchContext<'_> {
             };
         }
 
-        log::debug!(
+        logger::debug!(
             "Creating popup for '{}' with dimensions {}x{} at position {:?}",
             config.component,
             initial_dimensions.0,
@@ -877,7 +877,7 @@ impl EventDispatchContext<'_> {
 
                 popup_manager.update_popup_viewport(handle.key(), logical_width, logical_height);
                 popup_manager.commit_popup_surface(handle.key());
-                log::debug!(
+                logger::debug!(
                     "Updated popup viewport to logical size: {}x{} (from resize to {}x{})",
                     logical_width,
                     logical_height,
@@ -977,7 +977,7 @@ impl EventDispatchContext<'_> {
                 let dimensions = extract_dimensions_from_callback(args);
                 let popup_key = key_cell.get();
 
-                log::info!(
+                logger::info!(
                     "Resize callback invoked: {}x{} for key {}",
                     dimensions.width,
                     dimensions.height,
@@ -1001,7 +1001,7 @@ impl EventDispatchContext<'_> {
                                 logical_width,
                                 logical_height,
                             );
-                            log::debug!(
+                            logger::debug!(
                                 "Updated popup viewport to logical size: {}x{} (from direct resize to {}x{})",
                                 logical_width,
                                 logical_height,

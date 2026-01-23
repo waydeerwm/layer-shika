@@ -16,12 +16,18 @@ workspace = true
 [dependencies]
 glutin.workspace = true
 layer-shika-domain.workspace = true
-log.workspace = true
+log = { workspace = true, optional = true }
 raw-window-handle.workspace = true
 slint.workspace = true
 slint-interpreter.workspace = true
 smithay-client-toolkit.workspace = true
 thiserror.workspace = true
+tracing = { workspace = true, optional = true }
 wayland-client.workspace = true
 wayland-protocols.workspace = true
 xkbcommon.workspace = true
+
+[features]
+default = ["use-log"]
+use-log = ["dep:log"]
+use-tracing = ["dep:tracing"]

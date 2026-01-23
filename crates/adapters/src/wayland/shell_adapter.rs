@@ -1,4 +1,4 @@
-use crate::wayland::{
+use crate::{logger, wayland::{
     config::{LayerSurfaceConfig, ShellSurfaceConfig, WaylandSurfaceConfig},
     globals::context::GlobalContext,
     managed_proxies::{ManagedWlKeyboard, ManagedWlPointer},
@@ -6,15 +6,8 @@ use crate::wayland::{
     outputs::{OutputManager, OutputManagerContext},
     rendering::RenderableSet,
     session_lock::{LockPropertyOperation, OutputFilter},
-    surfaces::layer_surface::{SurfaceCtx, SurfaceSetupParams},
-    surfaces::popup_manager::{PopupContext, PopupManager},
-    surfaces::{
-        app_state::AppState,
-        event_context::SharedPointerSerial,
-        surface_builder::{PlatformWrapper, SurfaceStateBuilder},
-        surface_state::SurfaceState,
-    },
-};
+    surfaces::{app_state::AppState, event_context::SharedPointerSerial, layer_surface::{SurfaceCtx, SurfaceSetupParams}, popup_manager::{PopupContext, PopupManager}, surface_builder::{PlatformWrapper, SurfaceStateBuilder}, surface_state::SurfaceState},
+}};
 use layer_shika_domain::value_objects::handle::SurfaceHandle;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use crate::{
@@ -32,7 +25,6 @@ use layer_shika_domain::value_objects::lock_config::LockConfig;
 use layer_shika_domain::value_objects::lock_state::LockState;
 use layer_shika_domain::value_objects::output_handle::OutputHandle;
 use layer_shika_domain::value_objects::output_info::OutputInfo;
-use log::{error, info};
 use slint::{
     LogicalPosition, PhysicalSize, PlatformError, WindowPosition,
     platform::{WindowAdapter, femtovg_renderer::FemtoVGRenderer, set_platform, update_timers_and_animations},
@@ -80,7 +72,7 @@ pub struct WaylandShellSystem {
 
 impl WaylandShellSystem {
     pub fn new(config: &WaylandSurfaceConfig) -> Result<Self> {
-        info!("Initializing WindowingSystem");
+        logger::info!("Initializing WindowingSystem");
         let (connection, mut event_queue) = Self::init_wayland_connection()?;
         let event_loop =
             EventLoop::try_new().map_err(|e| EventLoopError::Creation { source: e })?;
@@ -100,7 +92,7 @@ impl WaylandShellSystem {
             return Self::new_minimal();
         }
 
-        info!(
+        logger::info!(
             "Initializing WindowingSystem with {} surface configs",
             configs.len()
         );
@@ -119,7 +111,7 @@ impl WaylandShellSystem {
     }
 
     pub fn new_minimal() -> Result<Self> {
-        info!("Initializing WindowingSystem in minimal mode (no layer surfaces)");
+        logger::info!("Initializing WindowingSystem in minimal mode (no layer surfaces)");
         let (connection, mut event_queue) = Self::init_wayland_connection()?;
         let event_loop =
             EventLoop::try_new().map_err(|e| EventLoopError::Creation { source: e })?;
@@ -178,7 +170,7 @@ impl WaylandShellSystem {
             temp_info.set_primary(is_primary);
 
             if !config.output_policy.should_render(&temp_info) {
-                info!("Skipping output {} due to output policy", index);
+                logger::info!("Skipping output {} due to output policy", index);
                 continue;
             }
 
@@ -477,7 +469,7 @@ impl WaylandShellSystem {
             .map_err(|e| LayerShikaError::PlatformSetup { source: e })?;
         app_state.set_slint_platform(Rc::clone(&platform));
 
-        info!(
+        logger::info!(
             "Minimal state initialized successfully (no layer surfaces, empty Slint platform for session locks)"
         );
 
@@ -514,9 +506,10 @@ impl WaylandShellSystem {
                 temp_info.set_primary(is_primary);
 
                 if !config.output_policy.should_render(&temp_info) {
-                    info!(
+                    logger::info!(
                         "Skipping shell surface '{}' on output {} due to output policy",
-                        shell_config.name, output_index
+                        shell_config.name,
+                        output_index
                     );
                     continue;
                 }
@@ -564,9 +557,10 @@ impl WaylandShellSystem {
                     builder = builder.with_viewport(Rc::clone(vp));
                 }
 
-                info!(
+                logger::info!(
                     "Created setup for shell surface '{}' on output {}",
-                    shell_config.name, output_index
+                    shell_config.name,
+                    output_index
                 );
 
                 setups.push(OutputSetup {
@@ -611,16 +605,16 @@ impl WaylandShellSystem {
         shared_serial: &Rc<SharedPointerSerial>,
     ) {
         let Some(first_manager) = popup_managers.first() else {
-            info!("No popup managers available");
+            logger::info!("No popup managers available");
             return;
         };
 
         if !first_manager.has_xdg_shell() {
-            info!("xdg-shell not available, popups will not be supported");
+            logger::info!("xdg-shell not available, popups will not be supported");
             return;
         }
 
-        info!(
+        logger::info!(
             "Setting up shared popup creator for {} output(s)",
             popup_managers.len()
         );
@@ -629,7 +623,7 @@ impl WaylandShellSystem {
         let serial_holder = Rc::clone(shared_serial);
 
         platform.set_popup_creator(move || {
-            info!("Popup creator called! Searching for pending popup...");
+            logger::info!("Popup creator called! Searching for pending popup...");
 
             let serial = serial_holder.get();
 
@@ -637,7 +631,7 @@ impl WaylandShellSystem {
                 popup_managers.iter().zip(layer_surfaces.iter()).enumerate()
             {
                 if popup_manager.has_pending_popup() {
-                    info!("Found pending popup in output #{}", idx);
+                    logger::info!("Found pending popup in output #{}", idx);
 
                     let popup_surface = popup_manager
                         .create_pending_popup(&queue_handle_clone, layer_surface, serial)
@@ -645,7 +639,7 @@ impl WaylandShellSystem {
                             PlatformError::Other(format!("Failed to create popup: {e}"))
                         })?;
 
-                    info!("Popup created successfully for output #{}", idx);
+                    logger::info!("Popup created successfully for output #{}", idx);
                     return Ok(popup_surface as Rc<dyn WindowAdapter>);
                 }
             }
@@ -681,14 +675,14 @@ impl WaylandShellSystem {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        info!("Starting WindowingSystem main loop");
+        logger::info!("Starting WindowingSystem main loop");
 
-        info!("Processing initial Wayland configuration events");
+        logger::info!("Processing initial Wayland configuration events");
         // first roundtrip to receive initial output, globals, and surface configure events
         // second roundtrip handles any cascading configure events like fractional scaling and layer surface configures
         for i in 0..2 {
             let dispatched = self.event_queue.roundtrip(&mut self.state)?;
-            info!("Roundtrip {} dispatched {} events", i + 1, dispatched);
+            logger::info!("Roundtrip {} dispatched {} events", i + 1, dispatched);
 
             self.connection
                 .flush()
@@ -702,7 +696,7 @@ impl WaylandShellSystem {
             }
         }
 
-        info!("Initial configuration complete, requesting final render");
+        logger::info!("Initial configuration complete, requesting final render");
         for surface in self.state.all_outputs() {
             RenderableWindow::request_redraw(surface.window().as_ref());
         }
@@ -723,7 +717,7 @@ impl WaylandShellSystem {
         self.event_loop
             .run(None, &mut self.state, move |shared_data| {
                 if let Err(e) = Self::process_events(connection, event_queue, shared_data) {
-                    error!("Error processing events: {e}");
+                    logger::error!("Error processing events: {e}");
                 }
             })
             .map_err(|e| EventLoopError::Execution { source: e })?;
@@ -820,7 +814,7 @@ impl WaylandShellSystem {
     }
 
     pub fn spawn_surface(&mut self, config: &ShellSurfaceConfig) -> Result<Vec<OutputHandle>> {
-        log::info!("Spawning new surface '{}'", config.name);
+        logger::info!("Spawning new surface '{}'", config.name);
 
         let mut handles = Vec::new();
 
@@ -828,7 +822,7 @@ impl WaylandShellSystem {
             handles.push(output_handle);
         }
 
-        log::info!(
+        logger::info!(
             "Surface '{}' would spawn on {} outputs (dynamic spawning not yet fully implemented)",
             config.name,
             handles.len()
@@ -838,11 +832,11 @@ impl WaylandShellSystem {
     }
 
     pub fn despawn_surface(&mut self, surface_name: &str) -> Result<()> {
-        log::info!("Despawning surface '{}'", surface_name);
+        logger::info!("Despawning surface '{}'", surface_name);
 
         let removed = self.state.remove_surfaces_by_name(surface_name);
 
-        log::info!(
+        logger::info!(
             "Removed {} surface instances for '{}'",
             removed.len(),
             surface_name
