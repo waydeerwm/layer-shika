@@ -16,12 +16,13 @@ pub use wayland::surfaces::popup_manager::PopupManager;
 pub use wayland::surfaces::surface_state::SurfaceState;
 
 pub(crate) mod logger {
-    #[cfg(all(feature = "use-log", feature = "use-tracing"))]
+    #[cfg(all(feature = "log", feature = "tracing"))]
     compile_error!("Cannot use both logging backend at one time");
 
-    #[cfg(feature = "use-log")]
+    #[cfg(feature = "log")]
     pub use log::{debug, error, info, warn};
-    #[cfg(feature = "use-tracing")]
+
+    #[cfg(feature = "tracing")]
     pub use tracing::{debug, error, info, warn};
 }
 

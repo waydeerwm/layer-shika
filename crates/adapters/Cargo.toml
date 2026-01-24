@@ -28,6 +28,6 @@ wayland-protocols.workspace = true
 xkbcommon.workspace = true
 
 [features]
-default = ["use-log"]
-use-log = ["dep:log"]
-use-tracing = ["dep:tracing"]
+default = ["log"]
+log = ["dep:log"]
+tracing = ["dep:tracing"]

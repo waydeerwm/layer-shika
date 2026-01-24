@@ -86,7 +86,7 @@ impl Dispatch<ZwlrLayerSurfaceV1, ()> for AppState {
 }
 
 impl Dispatch<WlOutput, ()> for AppState {
-    #[allow(clippy::cognitive_complexity)]
+    #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
     fn event(
         state: &mut Self,
         proxy: &WlOutput,

@@ -17,9 +17,9 @@ workspace = true
 layer-shika-composition.workspace = true
 
 [features]
-default = ["use-log"]
-use-log = ["layer-shika-composition/use-log"]
-use-tracing = ["layer-shika-composition/use-tracing"]
+default = ["log"]
+log = ["layer-shika-composition/log"]
+tracing = ["layer-shika-composition/tracing"]
 
 [workspace]
 resolver = "2"
