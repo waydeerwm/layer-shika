@@ -1,3 +1,11 @@
+use slint::LogicalPosition;
+use slint::platform::WindowEvent;
+use wayland_client::WEnum;
+use wayland_client::backend::ObjectId;
+use wayland_client::protocol::wl_surface::WlSurface;
+use wayland_client::protocol::{wl_keyboard, wl_pointer};
+
+use super::state::ActiveLockSurface;
 use crate::wayland::input::keyboard::{
     handle_keyboard_enter as shared_keyboard_enter, handle_keyboard_key as shared_keyboard_key,
     handle_keyboard_leave as shared_keyboard_leave,
@@ -14,14 +22,6 @@ use crate::wayland::input::{
     PointerInputState, PointerSurfaceResolver,
 };
 use crate::wayland::surfaces::keyboard_state::KeyboardState;
-use slint::{LogicalPosition, platform::WindowEvent};
-use wayland_client::{
-    WEnum,
-    backend::ObjectId,
-    protocol::{wl_keyboard, wl_pointer, wl_surface::WlSurface},
-};
-
-use super::state::ActiveLockSurface;
 
 pub(super) struct InputState {
     pub pointer: PointerInputState,

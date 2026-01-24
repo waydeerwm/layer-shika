@@ -1,8 +1,8 @@
-use layer_shika_domain::value_objects::output_handle::OutputHandle;
 use std::collections::HashMap;
-use wayland_client::backend::ObjectId;
 
+use layer_shika_domain::value_objects::output_handle::OutputHandle;
 pub(crate) use output_manager::{OutputManager, OutputManagerContext};
+use wayland_client::backend::ObjectId;
 pub(crate) mod output_manager;
 
 pub(crate) struct OutputMapping {

@@ -1,6 +1,6 @@
-use crate::event_loop::FromAppState;
-use crate::layer_surface::LayerSurfaceHandle;
-use crate::{Error, Result, logger};
+use std::cell::Cell;
+use std::rc::Rc;
+
 use layer_shika_adapters::platform::calloop::channel;
 use layer_shika_adapters::platform::slint::ComponentHandle;
 use layer_shika_adapters::platform::slint_interpreter::{
@@ -14,8 +14,7 @@ use layer_shika_domain::prelude::{
     AnchorEdges, KeyboardInteractivity, Layer, Margins, OutputPolicy, ScaleFactor,
 };
 use layer_shika_domain::value_objects::dimensions::{PopupDimensions, SurfaceDimension};
-use layer_shika_domain::value_objects::handle::PopupHandle;
-use layer_shika_domain::value_objects::handle::SurfaceHandle;
+use layer_shika_domain::value_objects::handle::{PopupHandle, SurfaceHandle};
 use layer_shika_domain::value_objects::lock_config::LockConfig;
 use layer_shika_domain::value_objects::output_handle::OutputHandle;
 use layer_shika_domain::value_objects::output_info::OutputInfo;
@@ -23,8 +22,10 @@ use layer_shika_domain::value_objects::popup_config::PopupConfig;
 use layer_shika_domain::value_objects::popup_position::PopupPosition;
 use layer_shika_domain::value_objects::popup_size::PopupSize;
 use layer_shika_domain::value_objects::surface_instance_id::SurfaceInstanceId;
-use std::cell::Cell;
-use std::rc::Rc;
+
+use crate::event_loop::FromAppState;
+use crate::layer_surface::LayerSurfaceHandle;
+use crate::{Error, Result, logger};
 
 pub enum PopupCommand {
     Show {

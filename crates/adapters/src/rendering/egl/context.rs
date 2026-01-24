@@ -1,32 +1,27 @@
-use crate::{
-    errors::{EGLError, LayerShikaError, Result},
-    logger,
-};
-use glutin::{
-    api::egl::{
-        config::Config,
-        context::{NotCurrentContext, PossiblyCurrentContext},
-        display::Display,
-        surface::Surface,
-    },
-    config::ConfigTemplateBuilder,
-    context::ContextAttributesBuilder,
-    display::GetGlDisplay,
-    prelude::*,
-    surface::{SurfaceAttributesBuilder, WindowSurface},
-};
+use std::error::Error;
+use std::ffi::{self, CStr, c_void};
+use std::num::NonZeroU32;
+use std::ptr::NonNull;
+use std::result::Result as StdResult;
+
+use glutin::api::egl::config::Config;
+use glutin::api::egl::context::{NotCurrentContext, PossiblyCurrentContext};
+use glutin::api::egl::display::Display;
+use glutin::api::egl::surface::Surface;
+use glutin::config::ConfigTemplateBuilder;
+use glutin::context::ContextAttributesBuilder;
+use glutin::display::GetGlDisplay;
+use glutin::prelude::*;
+use glutin::surface::{SurfaceAttributesBuilder, WindowSurface};
 use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle,
 };
-use slint::{PhysicalSize, platform::femtovg_renderer::OpenGLInterface};
-use std::{
-    error::Error,
-    ffi::{self, CStr, c_void},
-    num::NonZeroU32,
-    ptr::NonNull,
-    result::Result as StdResult,
-};
+use slint::PhysicalSize;
+use slint::platform::femtovg_renderer::OpenGLInterface;
 use wayland_client::backend::ObjectId;
+
+use crate::errors::{EGLError, LayerShikaError, Result};
+use crate::logger;
 
 pub struct EGLContext {
     surface: Surface<WindowSurface>,

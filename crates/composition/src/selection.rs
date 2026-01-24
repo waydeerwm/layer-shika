@@ -1,11 +1,9 @@
-use crate::{
-    Error, LayerSurfaceHandle, Shell, logger,
-    selector::{Selector, SurfaceInfo},
-    slint_interpreter::{ComponentInstance, Value},
-};
-use layer_shika_domain::{
-    errors::DomainError, value_objects::surface_instance_id::SurfaceInstanceId,
-};
+use layer_shika_domain::errors::DomainError;
+use layer_shika_domain::value_objects::surface_instance_id::SurfaceInstanceId;
+
+use crate::selector::{Selector, SurfaceInfo};
+use crate::slint_interpreter::{ComponentInstance, Value};
+use crate::{Error, LayerSurfaceHandle, Shell, logger};
 
 /// Result of a property operation on a single surface
 #[derive(Debug)]

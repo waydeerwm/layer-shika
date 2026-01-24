@@ -1,14 +1,16 @@
-use crate::{Error, Result};
+use std::cell::RefCell;
+use std::os::unix::io::AsFd;
+use std::rc::{Rc, Weak};
+use std::time::{Duration, Instant};
+
 use layer_shika_adapters::errors::EventLoopError;
 use layer_shika_adapters::platform::calloop::{
     EventSource, Generic, Interest, Mode, PostAction, RegistrationToken, TimeoutAction, Timer,
     channel,
 };
 use layer_shika_adapters::{AppState, WaylandSystemOps};
-use std::cell::RefCell;
-use std::os::unix::io::AsFd;
-use std::rc::{Rc, Weak};
-use std::time::{Duration, Instant};
+
+use crate::{Error, Result};
 
 pub trait FromAppState<'a> {
     fn from_app_state(app_state: &'a mut AppState) -> Self;

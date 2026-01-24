@@ -1,11 +1,10 @@
 // TODO: Maybe refactor to reuse the layer shell selector
 
-use crate::{
-    Error, logger,
-    selector::{Selector, SurfaceInfo},
-    slint_interpreter::{ComponentInstance, Value},
-};
 use layer_shika_domain::errors::DomainError;
+
+use crate::selector::{Selector, SurfaceInfo};
+use crate::slint_interpreter::{ComponentInstance, Value};
+use crate::{Error, logger};
 
 /// A selection of session lock surfaces matching a selector
 ///

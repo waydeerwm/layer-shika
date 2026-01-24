@@ -1,11 +1,11 @@
-use slint::{
-    PlatformError,
-    platform::{Platform, WindowAdapter},
-};
 use std::cell::{OnceCell, RefCell};
 use std::rc::Rc;
 
-use crate::{logger, rendering::femtovg::main_window::FemtoVGWindow};
+use slint::PlatformError;
+use slint::platform::{Platform, WindowAdapter};
+
+use crate::logger;
+use crate::rendering::femtovg::main_window::FemtoVGWindow;
 
 type PopupCreator = dyn Fn() -> Result<Rc<dyn WindowAdapter>, PlatformError>;
 

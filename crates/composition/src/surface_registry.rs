@@ -1,10 +1,12 @@
-use crate::Result;
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use layer_shika_adapters::platform::slint_interpreter::ComponentInstance;
 use layer_shika_domain::config::SurfaceConfig;
 use layer_shika_domain::value_objects::handle::SurfaceHandle;
 use layer_shika_domain::value_objects::output_handle::OutputHandle;
-use std::collections::HashMap;
-use std::rc::Rc;
+
+use crate::Result;
 
 /// Definition of a surface including component name and configuration
 ///

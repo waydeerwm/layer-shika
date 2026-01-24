@@ -1,15 +1,7 @@
-use crate::event_loop::{EventLoopHandle, FromAppState};
-use crate::layer_surface::LayerSurfaceHandle;
-use crate::session_lock::{SessionLock, SessionLockBuilder};
-use crate::shell_config::{CompiledUiSource, ShellConfig};
-use crate::shell_runtime::ShellRuntime;
-use crate::surface_registry::{SurfaceDefinition, SurfaceEntry, SurfaceRegistry};
-use crate::system::{
-    CallbackContext, EventDispatchContext, PopupCommand, SessionLockCommand, ShellCommand,
-    ShellControl, SurfaceCommand, SurfaceTarget,
-};
-use crate::value_conversion::IntoValue;
-use crate::{Error, Result, logger};
+use std::cell::RefCell;
+use std::path::{Path, PathBuf};
+use std::rc::{Rc, Weak};
+
 use layer_shika_adapters::errors::EventLoopError;
 use layer_shika_adapters::platform::calloop::channel;
 use layer_shika_adapters::platform::slint_interpreter::{
@@ -29,9 +21,19 @@ use layer_shika_domain::value_objects::output_handle::OutputHandle;
 use layer_shika_domain::value_objects::output_info::OutputInfo;
 use layer_shika_domain::value_objects::surface_instance_id::SurfaceInstanceId;
 use spin_on::spin_on;
-use std::cell::RefCell;
-use std::path::{Path, PathBuf};
-use std::rc::{Rc, Weak};
+
+use crate::event_loop::{EventLoopHandle, FromAppState};
+use crate::layer_surface::LayerSurfaceHandle;
+use crate::session_lock::{SessionLock, SessionLockBuilder};
+use crate::shell_config::{CompiledUiSource, ShellConfig};
+use crate::shell_runtime::ShellRuntime;
+use crate::surface_registry::{SurfaceDefinition, SurfaceEntry, SurfaceRegistry};
+use crate::system::{
+    CallbackContext, EventDispatchContext, PopupCommand, SessionLockCommand, ShellCommand,
+    ShellControl, SurfaceCommand, SurfaceTarget,
+};
+use crate::value_conversion::IntoValue;
+use crate::{Error, Result, logger};
 
 /// Default Slint component name used when none is specified
 pub const DEFAULT_COMPONENT_NAME: &str = "Main";

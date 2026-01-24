@@ -1,7 +1,8 @@
-use layer_shika_adapters::platform::slint_interpreter::CompilationResult;
-use layer_shika_domain::prelude::{SurfaceConfig, UiSource};
 use std::path::PathBuf;
 use std::rc::Rc;
+
+use layer_shika_adapters::platform::slint_interpreter::CompilationResult;
+use layer_shika_domain::prelude::{SurfaceConfig, UiSource};
 
 /// Source for Slint UI definition
 ///

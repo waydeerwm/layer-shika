@@ -1,9 +1,6 @@
-use crate::IntoValue;
-use crate::calloop::channel;
-use crate::logger;
-use crate::slint_interpreter::Value;
-use crate::system::{SessionLockCommand, ShellCommand};
-use crate::{Error, Result};
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
 use layer_shika_adapters::WaylandSystemOps;
 use layer_shika_domain::dimensions::ScaleFactor;
 use layer_shika_domain::errors::DomainError;
@@ -11,9 +8,11 @@ use layer_shika_domain::value_objects::lock_config::LockConfig;
 use layer_shika_domain::value_objects::lock_state::LockState;
 use layer_shika_domain::value_objects::margins::Margins;
 use layer_shika_domain::value_objects::output_policy::OutputPolicy;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::rc::Weak;
+
+use crate::calloop::channel;
+use crate::slint_interpreter::Value;
+use crate::system::{SessionLockCommand, ShellCommand};
+use crate::{Error, IntoValue, Result, logger};
 
 pub struct SessionLock {
     system: Weak<RefCell<dyn WaylandSystemOps>>,

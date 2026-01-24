@@ -1,17 +1,18 @@
+use core::ops::Deref;
+use std::cell::{Cell, OnceCell, RefCell};
+use std::rc::{Rc, Weak};
+
+use layer_shika_domain::dimensions::LogicalSize;
+use layer_shika_domain::value_objects::handle::PopupHandle;
+use slint::platform::femtovg_renderer::FemtoVGRenderer;
+use slint::platform::{Renderer, WindowAdapter, WindowEvent};
+use slint::{PhysicalSize, Window, WindowSize};
+use slint_interpreter::ComponentInstance;
+
 use super::renderable_window::{RenderState, RenderableWindow};
 use crate::errors::{RenderingError, Result};
 use crate::logger;
 use crate::wayland::surfaces::popup_manager::OnCloseCallback;
-use core::ops::Deref;
-use layer_shika_domain::dimensions::LogicalSize;
-use layer_shika_domain::value_objects::handle::PopupHandle;
-use slint::{
-    PhysicalSize, Window, WindowSize,
-    platform::{Renderer, WindowAdapter, WindowEvent, femtovg_renderer::FemtoVGRenderer},
-};
-use slint_interpreter::ComponentInstance;
-use std::cell::{Cell, OnceCell, RefCell};
-use std::rc::{Rc, Weak};
 
 /// Represents the rendering lifecycle state of a popup window
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

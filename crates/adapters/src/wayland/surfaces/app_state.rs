@@ -1,3 +1,22 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::os::fd::BorrowedFd;
+use std::rc::Rc;
+
+use layer_shika_domain::entities::output_registry::OutputRegistry;
+use layer_shika_domain::value_objects::handle::SurfaceHandle;
+use layer_shika_domain::value_objects::lock_config::LockConfig;
+use layer_shika_domain::value_objects::lock_state::LockState;
+use layer_shika_domain::value_objects::output_handle::OutputHandle;
+use layer_shika_domain::value_objects::output_info::OutputInfo;
+use slint_interpreter::{CompilationResult, ComponentDefinition, Value};
+use wayland_client::Proxy;
+use wayland_client::backend::ObjectId;
+use wayland_client::protocol::wl_keyboard;
+use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_surface::WlSurface;
+use xkbcommon::xkb;
+
 use super::event_context::SharedPointerSerial;
 use super::keyboard_state::KeyboardState;
 use super::surface_state::SurfaceState;
@@ -17,22 +36,6 @@ use crate::wayland::session_lock::manager::callbacks::{
 use crate::wayland::session_lock::{
     LockCallback, LockPropertyOperation, OutputFilter, SessionLockManager,
 };
-use layer_shika_domain::entities::output_registry::OutputRegistry;
-use layer_shika_domain::value_objects::handle::SurfaceHandle;
-use layer_shika_domain::value_objects::lock_config::LockConfig;
-use layer_shika_domain::value_objects::lock_state::LockState;
-use layer_shika_domain::value_objects::output_handle::OutputHandle;
-use layer_shika_domain::value_objects::output_info::OutputInfo;
-use slint_interpreter::{CompilationResult, ComponentDefinition, Value};
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::os::fd::BorrowedFd;
-use std::rc::Rc;
-use wayland_client::Proxy;
-use wayland_client::backend::ObjectId;
-use wayland_client::protocol::wl_keyboard;
-use wayland_client::protocol::{wl_output::WlOutput, wl_surface::WlSurface};
-use xkbcommon::xkb;
 
 pub type PerOutputSurface = SurfaceState;
 type SessionLockCallback = Rc<dyn Fn(&[Value]) -> Value>;

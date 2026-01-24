@@ -1,4 +1,6 @@
-use crate::logger;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use layer_shika_domain::dimensions::{
     LogicalSize as DomainLogicalSize, PhysicalSize as DomainPhysicalSize,
     ScaleFactor as DomainScaleFactor,
@@ -6,8 +8,8 @@ use layer_shika_domain::dimensions::{
 use layer_shika_domain::errors::Result as DomainResult;
 use layer_shika_domain::surface_dimensions::SurfaceDimensions;
 use slint::PhysicalSize;
-use std::cell::RefCell;
-use std::rc::Rc;
+
+use crate::logger;
 
 pub struct DisplayMetrics {
     surface: SurfaceDimensions,

@@ -1,17 +1,18 @@
+use std::cell::Cell;
+use std::rc::Rc;
+
+use slint::platform::{WindowAdapter, WindowEvent};
+use slint::{LogicalPosition, PhysicalSize};
+use wayland_client::Proxy;
+use wayland_client::backend::ObjectId;
+use wayland_client::protocol::wl_pointer;
+use wayland_client::protocol::wl_surface::WlSurface;
+use wayland_protocols::wp::fractional_scale::v1::client::wp_fractional_scale_v1::WpFractionalScaleV1;
+
 use crate::rendering::femtovg::main_window::FemtoVGWindow;
 use crate::wayland::input::PointerInputState;
 use crate::wayland::surfaces::display_metrics::SharedDisplayMetrics;
 use crate::wayland::surfaces::popup_manager::{ActiveWindow, PopupManager};
-use slint::platform::{WindowAdapter, WindowEvent};
-use slint::{LogicalPosition, PhysicalSize};
-use std::cell::Cell;
-use std::rc::Rc;
-use wayland_client::{
-    Proxy,
-    backend::ObjectId,
-    protocol::{wl_pointer, wl_surface::WlSurface},
-};
-use wayland_protocols::wp::fractional_scale::v1::client::wp_fractional_scale_v1::WpFractionalScaleV1;
 
 pub struct SharedPointerSerial {
     serial: Cell<u32>,

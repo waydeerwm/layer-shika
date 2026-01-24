@@ -1,9 +1,9 @@
-use crate::errors::Result;
-use slint::{
-    PhysicalSize, WindowSize,
-    platform::{WindowAdapter, WindowEvent},
-};
 use std::cell::Cell;
+
+use slint::platform::{WindowAdapter, WindowEvent};
+use slint::{PhysicalSize, WindowSize};
+
+use crate::errors::Result;
 
 pub enum RenderState {
     Clean,

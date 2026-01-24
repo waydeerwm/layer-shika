@@ -1,16 +1,18 @@
-use crate::{
-    errors::{EGLError, LayerShikaError, Result},
-    logger,
-};
-use glutin::{
-    api::egl::{config::Config, context::PossiblyCurrentContext, display::Display},
-    config::ConfigTemplateBuilder,
-    context::ContextAttributesBuilder,
-    prelude::*,
-};
+use std::ffi::c_void;
+use std::ptr::NonNull;
+use std::rc::Rc;
+
+use glutin::api::egl::config::Config;
+use glutin::api::egl::context::PossiblyCurrentContext;
+use glutin::api::egl::display::Display;
+use glutin::config::ConfigTemplateBuilder;
+use glutin::context::ContextAttributesBuilder;
+use glutin::prelude::*;
 use raw_window_handle::{RawDisplayHandle, WaylandDisplayHandle};
-use std::{ffi::c_void, ptr::NonNull, rc::Rc};
 use wayland_client::backend::ObjectId;
+
+use crate::errors::{EGLError, LayerShikaError, Result};
+use crate::logger;
 
 pub struct RenderContextManager {
     display: Display,

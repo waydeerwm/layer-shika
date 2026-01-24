@@ -1,15 +1,14 @@
-use super::renderable_window::{RenderState, RenderableWindow};
-use crate::{
-    errors::{RenderingError, Result},
-    logger,
-};
 use core::ops::Deref;
-use slint::{
-    PhysicalSize, Window, WindowSize,
-    platform::{Renderer, WindowAdapter, WindowEvent, femtovg_renderer::FemtoVGRenderer},
-};
 use std::cell::Cell;
 use std::rc::{Rc, Weak};
+
+use slint::platform::femtovg_renderer::FemtoVGRenderer;
+use slint::platform::{Renderer, WindowAdapter, WindowEvent};
+use slint::{PhysicalSize, Window, WindowSize};
+
+use super::renderable_window::{RenderState, RenderableWindow};
+use crate::errors::{RenderingError, Result};
+use crate::logger;
 
 pub struct FemtoVGWindow {
     window: Window,

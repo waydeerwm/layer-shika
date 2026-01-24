@@ -1,9 +1,14 @@
-use crate::{logger, wayland::session_lock::lock_context::LockSurfaceParams};
 use std::rc::Rc;
-use wayland_client::{Proxy, backend::ObjectId, protocol::wl_surface::WlSurface};
+
+use wayland_client::Proxy;
+use wayland_client::backend::ObjectId;
+use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_protocols::ext::session_lock::v1::client::ext_session_lock_surface_v1::ExtSessionLockSurfaceV1;
 use wayland_protocols::wp::fractional_scale::v1::client::wp_fractional_scale_v1::WpFractionalScaleV1;
 use wayland_protocols::wp::viewporter::client::wp_viewport::WpViewport;
+
+use crate::logger;
+use crate::wayland::session_lock::lock_context::LockSurfaceParams;
 
 pub struct LockSurface {
     surface: Rc<WlSurface>,

@@ -1,19 +1,22 @@
-use super::context::EGLContext;
-use super::render_context_manager::RenderContextManager;
-use crate::{
-    errors::{EGLError, LayerShikaError, Result},
-    logger,
-};
-use glutin::{
-    api::egl::{config::Config, display::Display, surface::Surface},
-    context::ContextAttributesBuilder,
-    prelude::*,
-    surface::{SurfaceAttributesBuilder, WindowSurface},
-};
+use std::ffi::c_void;
+use std::num::NonZeroU32;
+use std::ptr::NonNull;
+use std::rc::Rc;
+
+use glutin::api::egl::config::Config;
+use glutin::api::egl::display::Display;
+use glutin::api::egl::surface::Surface;
+use glutin::context::ContextAttributesBuilder;
+use glutin::prelude::*;
+use glutin::surface::{SurfaceAttributesBuilder, WindowSurface};
 use raw_window_handle::{RawWindowHandle, WaylandWindowHandle};
 use slint::PhysicalSize;
-use std::{ffi::c_void, num::NonZeroU32, ptr::NonNull, rc::Rc};
 use wayland_client::backend::ObjectId;
+
+use super::context::EGLContext;
+use super::render_context_manager::RenderContextManager;
+use crate::errors::{EGLError, LayerShikaError, Result};
+use crate::logger;
 
 pub struct RenderContextFactory {
     manager: Rc<RenderContextManager>,

@@ -1,7 +1,8 @@
+use std::collections::HashMap;
+
 use crate::value_objects::output_handle::OutputHandle;
 use crate::value_objects::output_info::OutputInfo;
 use crate::value_objects::output_policy::OutputPolicy;
-use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct OutputRegistry {

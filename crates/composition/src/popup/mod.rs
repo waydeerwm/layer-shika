@@ -1,10 +1,11 @@
-use crate::popup_builder::{Bound, PopupBuilder};
-use crate::system::{PopupCommand, ShellCommand, ShellControl};
-use crate::{Error, Result};
 use layer_shika_adapters::platform::calloop::channel;
 use layer_shika_domain::errors::DomainError;
 use layer_shika_domain::value_objects::handle::PopupHandle;
 use layer_shika_domain::value_objects::popup_config::PopupConfig;
+
+use crate::popup_builder::{Bound, PopupBuilder};
+use crate::system::{PopupCommand, ShellCommand, ShellControl};
+use crate::{Error, Result};
 
 #[derive(Clone)]
 pub struct PopupShell {

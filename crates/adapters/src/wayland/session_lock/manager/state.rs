@@ -1,4 +1,15 @@
-use super::callbacks::{LockCallbackContext, LockCallbackExt, LockPropertyOperationExt};
+use std::rc::Rc;
+
+use layer_shika_domain::surface_dimensions::SurfaceDimensions;
+use layer_shika_domain::value_objects::output_handle::OutputHandle;
+use layer_shika_domain::value_objects::output_info::OutputInfo;
+use slint::platform::{WindowAdapter, WindowEvent};
+use slint::{LogicalPosition, LogicalSize, WindowSize};
+use slint_interpreter::{CompilationResult, ComponentDefinition};
+
+use super::callbacks::{
+    LockCallback, LockCallbackContext, LockCallbackExt, LockPropertyOperationExt,
+};
 use crate::errors::Result;
 use crate::logger;
 use crate::rendering::femtovg::main_window::FemtoVGWindow;
@@ -7,17 +18,6 @@ use crate::rendering::slint_integration::platform::CustomSlintPlatform;
 use crate::wayland::session_lock::lock_surface::LockSurface;
 use crate::wayland::surfaces::component_state::ComponentState;
 use crate::wayland::surfaces::display_metrics::DisplayMetrics;
-use layer_shika_domain::surface_dimensions::SurfaceDimensions;
-use layer_shika_domain::value_objects::output_handle::OutputHandle;
-use layer_shika_domain::value_objects::output_info::OutputInfo;
-use slint::{
-    LogicalPosition, LogicalSize, WindowSize,
-    platform::{WindowAdapter, WindowEvent},
-};
-use slint_interpreter::{CompilationResult, ComponentDefinition};
-use std::rc::Rc;
-
-use super::callbacks::LockCallback;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LockScalingMode {

@@ -1,4 +1,5 @@
-use slint::{SharedString, platform::Key};
+use slint::SharedString;
+use slint::platform::Key;
 use xkbcommon::xkb;
 
 pub struct KeyboardState {

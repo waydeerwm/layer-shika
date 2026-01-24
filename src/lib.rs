@@ -131,28 +131,23 @@ pub mod shell;
 pub mod slint_integration;
 pub mod window;
 
+pub use event::{EventDispatchContext, EventLoopHandle, ShellEventLoop};
 pub use layer_shika_composition::{
     CallbackContext, Error, Handle, Result, SurfaceHandle, SurfaceInstanceId, SurfaceTarget,
 };
-
+pub use output::{OutputGeometry, OutputHandle, OutputInfo, OutputPolicy, OutputRegistry};
 pub use shell::{
     CompiledUiSource, DEFAULT_COMPONENT_NAME, DEFAULT_SURFACE_NAME, LayerSurfaceHandle, Output,
     Selection, Selector, Shell, ShellBuilder, ShellConfig, ShellControl, ShellEventContext,
     ShellRuntime, ShellSurfaceConfigHandler, Surface, SurfaceComponentConfig, SurfaceConfigBuilder,
     SurfaceDefinition, SurfaceInfo,
 };
-
+pub use slint_integration::{PopupWindow, slint, slint_interpreter};
 pub use window::{
     Alignment, AnchorEdges, AnchorPoint, AnchorStrategy, ConstraintAdjustment,
     KeyboardInteractivity, Layer, Offset, OutputTarget, PopupBehavior, PopupBuilder, PopupConfig,
     PopupHandle, PopupPosition, PopupShell, PopupSize,
 };
-
-pub use output::{OutputGeometry, OutputHandle, OutputInfo, OutputPolicy, OutputRegistry};
-
-pub use event::{EventDispatchContext, EventLoopHandle, ShellEventLoop};
-
-pub use slint_integration::{PopupWindow, slint, slint_interpreter};
 
 pub mod calloop {
     pub use layer_shika_composition::calloop::*;

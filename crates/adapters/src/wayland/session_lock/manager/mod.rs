@@ -4,36 +4,33 @@ pub mod lifecycle;
 pub mod rendering;
 pub mod state;
 
-use crate::rendering::slint_integration::platform::CustomSlintPlatform;
-use crate::wayland::rendering::RenderableSet;
-use crate::wayland::session_lock::lock_context::SessionLockContext;
-use crate::wayland::session_lock::lock_surface::LockSurface;
-use crate::wayland::surfaces::app_state::AppState;
-use crate::wayland::surfaces::keyboard_state::KeyboardState;
-use crate::{
-    errors::{LayerShikaError, Result},
-    logger,
-};
-use layer_shika_domain::prelude::OutputInfo;
-use layer_shika_domain::value_objects::lock_config::LockConfig;
-use layer_shika_domain::value_objects::lock_state::LockState;
-use slint_interpreter::{CompilationResult, ComponentDefinition, ComponentInstance};
 use std::rc::Rc;
-use wayland_client::{
-    Proxy, QueueHandle, WEnum,
-    backend::ObjectId,
-    protocol::{wl_keyboard, wl_output::WlOutput, wl_pointer, wl_surface::WlSurface},
-};
-use wayland_protocols::ext::session_lock::v1::client::ext_session_lock_v1::ExtSessionLockV1;
 
 pub use callbacks::{
     LockCallback, LockPropertyOperation, OutputFilter,
     create_lock_property_operation_with_output_filter,
 };
+use layer_shika_domain::prelude::OutputInfo;
+use layer_shika_domain::value_objects::lock_config::LockConfig;
+use layer_shika_domain::value_objects::lock_state::LockState;
+use slint_interpreter::{CompilationResult, ComponentDefinition, ComponentInstance};
 pub use state::{ActiveLockSurface, LockConfigureContext, LockSurfaceOutputContext};
+use wayland_client::backend::ObjectId;
+use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_surface::WlSurface;
+use wayland_client::protocol::{wl_keyboard, wl_pointer};
+use wayland_client::{Proxy, QueueHandle, WEnum};
+use wayland_protocols::ext::session_lock::v1::client::ext_session_lock_v1::ExtSessionLockV1;
 
 use self::input_handling::InputState;
-use crate::wayland::session_lock::lock_context::LockSurfaceParams;
+use crate::errors::{LayerShikaError, Result};
+use crate::logger;
+use crate::rendering::slint_integration::platform::CustomSlintPlatform;
+use crate::wayland::rendering::RenderableSet;
+use crate::wayland::session_lock::lock_context::{LockSurfaceParams, SessionLockContext};
+use crate::wayland::session_lock::lock_surface::LockSurface;
+use crate::wayland::surfaces::app_state::AppState;
+use crate::wayland::surfaces::keyboard_state::KeyboardState;
 
 pub struct SessionLockManager {
     context: Rc<SessionLockContext>,
