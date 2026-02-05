@@ -1,13 +1,14 @@
+use std::rc::Rc;
+
+use slint::platform::WindowAdapter;
+use slint::platform::femtovg_renderer::FemtoVGRenderer;
+use slint::{LogicalPosition, LogicalSize, WindowPosition, WindowSize};
+use wayland_client::backend::ObjectId;
+
 use crate::errors::{LayerShikaError, Result};
 use crate::rendering::femtovg::main_window::FemtoVGWindow;
 use crate::rendering::femtovg::renderable_window::RenderableWindow;
 use crate::wayland::session_lock::lock_context::SessionLockContext;
-use slint::{
-    LogicalPosition, LogicalSize, WindowPosition, WindowSize, platform::WindowAdapter,
-    platform::femtovg_renderer::FemtoVGRenderer,
-};
-use std::rc::Rc;
-use wayland_client::backend::ObjectId;
 
 pub(super) fn create_window(
     context: &SessionLockContext,

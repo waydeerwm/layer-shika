@@ -1,8 +1,10 @@
-use crate::errors::{LayerShikaError, Result};
-use crate::rendering::femtovg::main_window::FemtoVGWindow;
+use std::rc::Rc;
+
 use slint::ComponentHandle;
 use slint_interpreter::{CompilationResult, ComponentDefinition, ComponentInstance};
-use std::rc::Rc;
+
+use crate::errors::{LayerShikaError, Result};
+use crate::rendering::femtovg::main_window::FemtoVGWindow;
 
 pub struct ComponentState {
     component_instance: ComponentInstance,

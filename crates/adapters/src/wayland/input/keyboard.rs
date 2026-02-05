@@ -1,13 +1,13 @@
-use crate::wayland::surfaces::keyboard_state::{KeyboardState, keysym_to_text};
-use slint::{SharedString, platform::WindowEvent};
-use wayland_client::{
-    Proxy,
-    backend::ObjectId,
-    protocol::{wl_keyboard, wl_surface::WlSurface},
-};
+use slint::SharedString;
+use slint::platform::WindowEvent;
+use wayland_client::Proxy;
+use wayland_client::backend::ObjectId;
+use wayland_client::protocol::wl_keyboard;
+use wayland_client::protocol::wl_surface::WlSurface;
 use xkbcommon::xkb;
 
 use super::state::KeyboardInputState;
+use crate::wayland::surfaces::keyboard_state::{KeyboardState, keysym_to_text};
 
 pub trait KeyboardEventTarget {
     fn dispatch_event(&self, event: WindowEvent);

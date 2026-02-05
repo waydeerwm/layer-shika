@@ -1,14 +1,16 @@
-use crate::rendering::egl::context_factory::RenderContextFactory;
-use crate::wayland::surfaces::app_state::AppState;
 use std::rc::Rc;
-use wayland_client::{
-    QueueHandle,
-    protocol::{wl_compositor::WlCompositor, wl_output::WlOutput, wl_seat::WlSeat},
-};
+
+use wayland_client::QueueHandle;
+use wayland_client::protocol::wl_compositor::WlCompositor;
+use wayland_client::protocol::wl_output::WlOutput;
+use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_protocols::ext::session_lock::v1::client::ext_session_lock_manager_v1::ExtSessionLockManagerV1;
 use wayland_protocols::ext::session_lock::v1::client::ext_session_lock_v1::ExtSessionLockV1;
 use wayland_protocols::wp::fractional_scale::v1::client::wp_fractional_scale_manager_v1::WpFractionalScaleManagerV1;
 use wayland_protocols::wp::viewporter::client::wp_viewporter::WpViewporter;
+
+use crate::rendering::egl::context_factory::RenderContextFactory;
+use crate::wayland::surfaces::app_state::AppState;
 
 #[derive(Clone)]
 pub struct SessionLockContext {

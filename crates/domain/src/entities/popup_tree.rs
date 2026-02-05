@@ -1,5 +1,6 @@
-use crate::value_objects::handle::PopupHandle;
 use std::collections::HashMap;
+
+use crate::value_objects::handle::PopupHandle;
 
 #[derive(Debug, Default, Clone)]
 pub struct PopupTree {

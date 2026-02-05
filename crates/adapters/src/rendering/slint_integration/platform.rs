@@ -1,10 +1,10 @@
-use slint::{
-    PlatformError,
-    platform::{Platform, WindowAdapter},
-};
 use std::cell::{OnceCell, RefCell};
 use std::rc::Rc;
 
+use slint::PlatformError;
+use slint::platform::{Platform, WindowAdapter};
+
+use crate::logger;
 use crate::rendering::femtovg::main_window::FemtoVGWindow;
 
 type PopupCreator = dyn Fn() -> Result<Rc<dyn WindowAdapter>, PlatformError>;
@@ -40,7 +40,7 @@ impl CustomSlintPlatform {
         F: Fn() -> Result<Rc<dyn WindowAdapter>, PlatformError> + 'static,
     {
         if self.popup_creator.set(Rc::new(creator)).is_err() {
-            log::warn!("Popup creator already set, ignoring new creator");
+            logger::warn!("Popup creator already set, ignoring new creator");
         }
     }
 }

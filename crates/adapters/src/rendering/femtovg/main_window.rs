@@ -1,13 +1,14 @@
-use super::renderable_window::{RenderState, RenderableWindow};
-use crate::errors::{RenderingError, Result};
 use core::ops::Deref;
-use log::info;
-use slint::{
-    PhysicalSize, Window, WindowSize,
-    platform::{Renderer, WindowAdapter, WindowEvent, femtovg_renderer::FemtoVGRenderer},
-};
 use std::cell::Cell;
 use std::rc::{Rc, Weak};
+
+use slint::platform::femtovg_renderer::FemtoVGRenderer;
+use slint::platform::{Renderer, WindowAdapter, WindowEvent};
+use slint::{PhysicalSize, Window, WindowSize};
+
+use super::renderable_window::{RenderState, RenderableWindow};
+use crate::errors::{RenderingError, Result};
+use crate::logger;
 
 pub struct FemtoVGWindow {
     window: Window,
@@ -49,7 +50,7 @@ impl RenderableWindow for FemtoVGWindow {
     }
 
     fn set_scale_factor(&self, scale_factor: f32) {
-        info!("Setting scale factor to {scale_factor}");
+        logger::info!("Setting scale factor to {scale_factor}");
         self.scale_factor.set(scale_factor);
         self.window()
             .dispatch_event(WindowEvent::ScaleFactorChanged { scale_factor });

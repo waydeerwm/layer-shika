@@ -1,7 +1,6 @@
 use layer_shika_domain::dimensions::{LogicalRect, LogicalSize as DomainLogicalSize};
 use layer_shika_domain::value_objects::popup_behavior::ConstraintAdjustment as DomainConstraintAdjustment;
 use layer_shika_domain::value_objects::popup_position::{Alignment, AnchorPoint, PopupPosition};
-use log::info;
 use slint::PhysicalSize;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
 use std::rc::Rc;
@@ -22,6 +21,8 @@ use wayland_protocols::xdg::shell::client::{
     xdg_surface::XdgSurface,
     xdg_wm_base::XdgWmBase,
 };
+
+use crate::logger;
 
 use super::app_state::AppState;
 
@@ -66,16 +67,16 @@ impl PopupSurface {
 
         let xdg_popup = Rc::new(xdg_surface.get_popup(None, &positioner, params.queue_handle, ()));
 
-        info!("Attaching popup to layer surface via get_popup");
+        logger::info!("Attaching popup to layer surface via get_popup");
         params.parent_layer_surface.get_popup(&xdg_popup);
 
         let fractional_scale = params.fractional_scale_manager.map(|manager| {
-            info!("Creating fractional scale object for popup surface");
+            logger::info!("Creating fractional scale object for popup surface");
             Rc::new(manager.get_fractional_scale(&surface, params.queue_handle, ()))
         });
 
         let viewport = params.viewporter.map(|vp| {
-            info!("Creating viewport for popup surface");
+            logger::info!("Creating viewport for popup surface");
             Rc::new(vp.get_viewport(&surface, params.queue_handle, ()))
         });
 
@@ -85,7 +86,7 @@ impl PopupSurface {
         if let Some(ref vp) = viewport {
             let logical_width = (params.physical_size.width as f32 / params.scale_factor) as i32;
             let logical_height = (params.physical_size.height as f32 / params.scale_factor) as i32;
-            info!(
+            logger::info!(
                 "Setting viewport destination to logical size: {}x{} (physical: {}x{}, scale: {})",
                 logical_width,
                 logical_height,
@@ -130,9 +131,11 @@ impl PopupSurface {
             params.output_bounds,
         );
 
-        info!(
+        logger::info!(
             "Popup positioning: position={:?}, calculated_top_left=({}, {})",
-            params.position, calculated_x, calculated_y
+            params.position,
+            calculated_x,
+            calculated_y
         );
 
         let logical_width_i32 = logical_width as i32;
@@ -149,16 +152,16 @@ impl PopupSurface {
     }
 
     pub fn grab(&self, seat: &WlSeat, serial: u32) {
-        info!("Grabbing popup with serial {serial}");
+        logger::info!("Grabbing popup with serial {serial}");
         self.xdg_popup.grab(seat, serial);
 
-        info!("Committing popup surface to trigger configure event");
+        logger::info!("Committing popup surface to trigger configure event");
         self.surface.commit();
     }
 
     pub fn update_viewport_size(&self, logical_width: i32, logical_height: i32) {
         if let Some(ref vp) = self.viewport {
-            log::debug!(
+            logger::debug!(
                 "Updating popup viewport destination to logical size: {}x{}",
                 logical_width,
                 logical_height
@@ -180,9 +183,12 @@ impl PopupSurface {
             self.output_bounds,
         );
 
-        info!(
+        logger::info!(
             "Repositioning popup: new_size=({}x{}), new_top_left=({}, {})",
-            logical_width, logical_height, calculated_x, calculated_y
+            logical_width,
+            logical_height,
+            calculated_x,
+            calculated_y
         );
 
         let positioner = self.xdg_wm_base.create_positioner(&self.queue_handle, ());
@@ -196,7 +202,7 @@ impl PopupSurface {
     }
 
     pub fn destroy(&self) {
-        info!("Destroying popup surface");
+        logger::info!("Destroying popup surface");
         self.xdg_popup.destroy();
         self.xdg_surface.destroy();
         self.surface.destroy();
@@ -224,7 +230,7 @@ fn compute_top_left(
             (anchor_x - ax, anchor_y - ay)
         }
         PopupPosition::Cursor { .. } | PopupPosition::RelativeToParent { .. } => {
-            log::warn!("PopupPosition variant not supported by current backend: {position:?}");
+            logger::warn!("PopupPosition variant not supported by current backend: {position:?}");
             (0.0, 0.0)
         }
     };

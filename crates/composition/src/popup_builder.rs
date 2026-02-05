@@ -1,5 +1,3 @@
-use crate::Result;
-use crate::popup::PopupShell;
 use layer_shika_domain::dimensions::LogicalRect;
 use layer_shika_domain::value_objects::handle::PopupHandle;
 use layer_shika_domain::value_objects::output_target::OutputTarget;
@@ -9,6 +7,9 @@ use layer_shika_domain::value_objects::popup_position::{
     Alignment, AnchorPoint, Offset, PopupPosition,
 };
 use layer_shika_domain::value_objects::popup_size::PopupSize;
+
+use crate::Result;
+use crate::popup::PopupShell;
 
 /// Type state indicating the builder is not bound to a shell
 pub struct Unbound;

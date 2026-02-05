@@ -1,6 +1,5 @@
 use std::fmt::{Debug, Formatter, Result as FmtResult};
-use std::hash::Hash;
-use std::hash::Hasher;
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, Ordering};
 

@@ -1,14 +1,18 @@
-use crate::errors::{EGLError, LayerShikaError, Result};
-use glutin::{
-    api::egl::{config::Config, context::PossiblyCurrentContext, display::Display},
-    config::ConfigTemplateBuilder,
-    context::ContextAttributesBuilder,
-    prelude::*,
-};
-use log::{info, warn};
+use std::ffi::c_void;
+use std::ptr::NonNull;
+use std::rc::Rc;
+
+use glutin::api::egl::config::Config;
+use glutin::api::egl::context::PossiblyCurrentContext;
+use glutin::api::egl::display::Display;
+use glutin::config::ConfigTemplateBuilder;
+use glutin::context::ContextAttributesBuilder;
+use glutin::prelude::*;
 use raw_window_handle::{RawDisplayHandle, WaylandDisplayHandle};
-use std::{ffi::c_void, ptr::NonNull, rc::Rc};
 use wayland_client::backend::ObjectId;
+
+use crate::errors::{EGLError, LayerShikaError, Result};
+use crate::logger;
 
 pub struct RenderContextManager {
     display: Display,
@@ -18,7 +22,7 @@ pub struct RenderContextManager {
 
 impl RenderContextManager {
     pub fn new(display_id: &ObjectId) -> Result<Rc<Self>> {
-        info!("Initializing RenderContextManager with independent root context");
+        logger::info!("Initializing RenderContextManager with independent root context");
 
         let display_handle = create_wayland_display_handle(display_id)?;
         let display = unsafe { Display::new(display_handle) }
@@ -29,7 +33,7 @@ impl RenderContextManager {
 
         let root_context = Self::create_root_context(&display, &config)?;
 
-        info!("RenderContextManager initialized successfully");
+        logger::info!("RenderContextManager initialized successfully");
 
         Ok(Rc::new(Self {
             display,
@@ -40,11 +44,11 @@ impl RenderContextManager {
 
     fn create_root_context(display: &Display, config: &Config) -> Result<PossiblyCurrentContext> {
         if let Ok(context) = Self::try_create_surfaceless_context(display, config) {
-            info!("Created surfaceless root EGL context");
+            logger::info!("Created surfaceless root EGL context");
             return Ok(context);
         }
 
-        warn!(
+        logger::warn!(
             "Surfaceless context not available, using workaround with make_current_surfaceless anyway"
         );
         Self::create_surfaceless_fallback(display, config)

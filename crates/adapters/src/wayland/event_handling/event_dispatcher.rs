@@ -1,7 +1,7 @@
 use crate::wayland::surfaces::keyboard_state::{KeyboardState, keysym_to_text};
 use crate::wayland::surfaces::pointer_utils::wayland_button_to_slint;
 use crate::wayland::surfaces::surface_state::SurfaceState;
-use log::info;
+use crate::logger;
 use slint::{
     PhysicalSize,
     platform::WindowEvent,
@@ -41,7 +41,7 @@ impl SurfaceState {
         width: u32,
         height: u32,
     ) {
-        info!("Layer surface configured with compositor size: {width}x{height}");
+        logger::info!("Layer surface configured with compositor size: {width}x{height}");
         layer_surface.ack_configure(serial);
 
         let output_width = self.output_size().width;
@@ -70,7 +70,7 @@ impl SurfaceState {
 
         let clamped_width = target_width.min(output_width);
 
-        info!(
+        logger::info!(
             "Using dimensions: {}x{} (clamped from {}x{}, output: {}x{})",
             clamped_width,
             target_height,
@@ -85,11 +85,11 @@ impl SurfaceState {
 
     #[allow(clippy::unused_self)]
     pub(crate) fn handle_layer_surface_closed(&mut self) {
-        info!("Layer surface closed");
+        logger::info!("Layer surface closed");
     }
 
     pub(crate) fn handle_output_mode(&mut self, width: i32, height: i32) {
-        info!("WlOutput size changed to {width}x{height}");
+        logger::info!("WlOutput size changed to {width}x{height}");
         let width = width.try_into().unwrap_or_default();
         let height = height.try_into().unwrap_or_default();
         self.set_output_size(PhysicalSize::new(width, height));
@@ -219,7 +219,7 @@ impl SurfaceState {
     pub(crate) fn handle_fractional_scale(&mut self, proxy: &WpFractionalScaleV1, scale: u32) {
         use crate::wayland::surfaces::display_metrics::DisplayMetrics;
         let scale_float = DisplayMetrics::scale_factor_from_120ths(scale);
-        info!("Fractional scale received: {scale_float} ({scale}x)");
+        logger::info!("Fractional scale received: {scale_float} ({scale}x)");
         self.update_scale_for_fractional_scale_object(proxy, scale);
     }
 
@@ -231,12 +231,12 @@ impl SurfaceState {
         width: i32,
         height: i32,
     ) {
-        info!("XdgPopup Configure: position=({x}, {y}), size=({width}x{height})");
+        logger::info!("XdgPopup Configure: position=({x}, {y}), size=({width}x{height})");
 
         if let Some(popup_manager) = self.popup_manager() {
             let popup_id = xdg_popup.id();
             if let Some(handle) = popup_manager.find_by_xdg_popup(&popup_id) {
-                info!(
+                logger::info!(
                     "Marking popup with handle {handle:?} as configured after XdgPopup::Configure"
                 );
                 popup_manager.mark_popup_configured(handle.key());
@@ -247,7 +247,7 @@ impl SurfaceState {
     }
 
     pub(crate) fn handle_xdg_popup_done(&mut self, xdg_popup: &XdgPopup) {
-        info!("XdgPopup dismissed by compositor");
+        logger::info!("XdgPopup dismissed by compositor");
         let popup_id = xdg_popup.id();
         let popup_handle = self
             .popup_manager()
@@ -255,7 +255,7 @@ impl SurfaceState {
             .and_then(|pm| pm.find_by_xdg_popup(&popup_id));
 
         if let Some(handle) = popup_handle {
-            info!("Destroying popup with handle {handle:?}");
+            logger::info!("Destroying popup with handle {handle:?}");
             if let Some(popup_manager) = self.popup_manager() {
                 let _result = popup_manager.close(handle);
             }
@@ -263,17 +263,17 @@ impl SurfaceState {
     }
 
     pub(crate) fn handle_xdg_surface_configure(&mut self, xdg_surface: &XdgSurface, serial: u32) {
-        info!("XdgSurface Configure received, sending ack with serial {serial}");
+        logger::info!("XdgSurface Configure received, sending ack with serial {serial}");
         xdg_surface.ack_configure(serial);
 
         if let Some(popup_manager) = self.popup_manager() {
-            info!("Marking all popups as dirty after Configure");
+            logger::info!("Marking all popups as dirty after Configure");
             popup_manager.mark_all_popups_dirty();
         }
     }
 
     pub(crate) fn handle_xdg_wm_base_ping(xdg_wm_base: &XdgWmBase, serial: u32) {
-        info!("XdgWmBase ping received, sending pong with serial {serial}");
+        logger::info!("XdgWmBase ping received, sending pong with serial {serial}");
         xdg_wm_base.pong(serial);
     }
 }

@@ -1,0 +1,21 @@
+name: Push Github -> Forgejo
+on:
+    push:
+        branches:
+            - "**"
+    workflow_dispatch:
+
+jobs:
+    push-to-forgejo:
+        runs-on: ubuntu-latest
+        steps:
+            - name: "Checkout"
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+            - name: "Sync repo"
+              uses: spyoungtech/mirror-action@master
+              with:
+                  REMOTE: "https://codeberg.org/waydeer/layer-shika"
+                  GIT_USERNAME: drendog
+                  GIT_PASSWORD: ${{ secrets.FORGEJO_TOKEN }}

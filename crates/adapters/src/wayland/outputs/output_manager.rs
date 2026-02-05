@@ -12,13 +12,12 @@ use crate::{
             surface_builder::SurfaceStateBuilder,
             surface_state::SurfaceState,
         },
-    },
+    }, logger,
 };
 use layer_shika_domain::value_objects::{
     output_handle::OutputHandle,
     output_info::OutputInfo,
 };
-use log::{info, warn};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_shell_v1::ZwlrLayerShellV1;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use wayland_client::{
@@ -89,7 +88,7 @@ impl OutputManager {
         let output_id = output.id();
         let handle = self.output_mapping.insert(output_id.clone());
 
-        info!(
+        logger::info!(
             "Registered new output with handle {handle:?}, id {:?}",
             output_id
         );
@@ -129,16 +128,18 @@ impl OutputManager {
         info.set_primary(is_primary);
 
         if !self.config.output_policy.should_render(&info) {
-            info!(
+            logger::info!(
                 "Skipping output {:?} due to output policy (primary: {})",
-                output_id, is_primary
+                output_id,
+                is_primary
             );
             return Ok(());
         }
 
-        info!(
+        logger::info!(
             "Finalizing output {:?} (handle: {handle:?}, primary: {})",
-            output_id, is_primary
+            output_id,
+            is_primary
         );
 
         let (surface, main_surface_id) =
@@ -230,20 +231,20 @@ impl OutputManager {
 
     pub fn remove_output(&mut self, output_id: &ObjectId, app_state: &mut AppState) {
         if let Some(handle) = self.output_mapping.remove(output_id) {
-            info!("Removing output {handle:?} (id: {output_id:?})");
+            logger::info!("Removing output {handle:?} (id: {output_id:?})");
 
             let removed_windows = app_state.remove_output(handle);
             if removed_windows.is_empty() {
-                warn!("No window found for output handle {handle:?}");
+                logger::warn!("No window found for output handle {handle:?}");
             } else {
-                info!(
+                logger::info!(
                     "Cleaned up {} window(s) for output {handle:?}",
                     removed_windows.len()
                 );
             }
         } else {
             self.pending_outputs.borrow_mut().remove(output_id);
-            info!("Removed pending output {output_id:?}");
+            logger::info!("Removed pending output {output_id:?}");
         }
     }
 

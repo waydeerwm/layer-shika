@@ -1,8 +1,10 @@
-use crate::errors::{LayerShikaError, Result};
+use std::rc::Rc;
+
 use layer_shika_domain::value_objects::output_handle::OutputHandle;
 use layer_shika_domain::value_objects::output_info::OutputInfo;
 use slint_interpreter::{ComponentInstance, Value};
-use std::rc::Rc;
+
+use crate::errors::{LayerShikaError, Result};
 
 pub(crate) trait FilterContext {
     fn matches_filter(&self, filter: &dyn Fn(&Self) -> bool) -> bool {

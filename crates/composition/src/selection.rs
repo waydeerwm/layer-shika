@@ -1,11 +1,9 @@
-use crate::{
-    Error, LayerSurfaceHandle, Shell,
-    selector::{Selector, SurfaceInfo},
-    slint_interpreter::{ComponentInstance, Value},
-};
-use layer_shika_domain::{
-    errors::DomainError, value_objects::surface_instance_id::SurfaceInstanceId,
-};
+use layer_shika_domain::errors::DomainError;
+use layer_shika_domain::value_objects::surface_instance_id::SurfaceInstanceId;
+
+use crate::selector::{Selector, SurfaceInfo};
+use crate::slint_interpreter::{ComponentInstance, Value};
+use crate::{Error, LayerSurfaceHandle, Shell, logger};
 
 /// Result of a property operation on a single surface
 #[derive(Debug)]
@@ -153,7 +151,7 @@ impl<'a> Selection<'a> {
                     Ok(()) => result.add_success(()),
                     Err(e) => {
                         let error_msg = format!("Failed to set property '{}': {}", name, e);
-                        log::error!(
+                        logger::error!(
                             "{} on surface {}[{:?}]",
                             error_msg,
                             info.name,
@@ -179,7 +177,7 @@ impl<'a> Selection<'a> {
                     Ok(value) => result.add_success(value),
                     Err(e) => {
                         let error_msg = format!("Failed to get property '{}': {}", name, e);
-                        log::error!(
+                        logger::error!(
                             "{} on surface {}[{:?}]",
                             error_msg,
                             info.name,

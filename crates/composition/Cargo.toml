@@ -16,7 +16,13 @@ workspace = true
 [dependencies]
 layer-shika-adapters.workspace = true
 layer-shika-domain.workspace = true
-log.workspace = true
+log = { workspace = true, optional = true }
 spin_on.workspace = true
 smithay-client-toolkit.workspace = true
 thiserror.workspace = true
+tracing = { workspace = true, optional = true }
+
+[features]
+default = ["log"]
+log = ["dep:log", "layer-shika-adapters/log"]
+tracing = ["dep:tracing", "layer-shika-adapters/tracing"]

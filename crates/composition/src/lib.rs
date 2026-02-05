@@ -15,14 +15,14 @@ mod surface_registry;
 mod system;
 pub mod value_conversion;
 
-use layer_shika_adapters::errors::LayerShikaError;
-use layer_shika_domain::errors::DomainError;
 use std::result::Result as StdResult;
 
 pub use event_loop::{EventLoopHandle, ShellEventLoop};
 pub use layer_shika_adapters::PopupWindow;
+use layer_shika_adapters::errors::LayerShikaError;
 pub use layer_shika_adapters::platform::{slint, slint_interpreter};
 pub use layer_shika_domain::entities::output_registry::OutputRegistry;
+use layer_shika_domain::errors::DomainError;
 pub use layer_shika_domain::prelude::AnchorStrategy;
 pub use layer_shika_domain::value_objects::anchor::AnchorEdges;
 pub use layer_shika_domain::value_objects::handle::{Handle, PopupHandle, SurfaceHandle};
@@ -31,14 +31,16 @@ pub use layer_shika_domain::value_objects::layer::Layer;
 pub use layer_shika_domain::value_objects::output_handle::OutputHandle;
 pub use layer_shika_domain::value_objects::output_info::{OutputGeometry, OutputInfo};
 pub use layer_shika_domain::value_objects::output_policy::OutputPolicy;
-pub use layer_shika_domain::value_objects::surface_instance_id::SurfaceInstanceId;
-pub use layer_shika_domain::value_objects::{
-    output_target::OutputTarget,
-    popup_behavior::{ConstraintAdjustment, OutputMigrationPolicy, PopupBehavior},
-    popup_config::PopupConfig,
-    popup_position::{Alignment, AnchorPoint, Offset, PopupPosition},
-    popup_size::PopupSize,
+pub use layer_shika_domain::value_objects::output_target::OutputTarget;
+pub use layer_shika_domain::value_objects::popup_behavior::{
+    ConstraintAdjustment, OutputMigrationPolicy, PopupBehavior,
 };
+pub use layer_shika_domain::value_objects::popup_config::PopupConfig;
+pub use layer_shika_domain::value_objects::popup_position::{
+    Alignment, AnchorPoint, Offset, PopupPosition,
+};
+pub use layer_shika_domain::value_objects::popup_size::PopupSize;
+pub use layer_shika_domain::value_objects::surface_instance_id::SurfaceInstanceId;
 pub use layer_surface::{LayerSurfaceHandle, ShellSurfaceConfigHandler};
 pub use lock_selection::LockSelection;
 pub use popup::PopupShell;
@@ -46,20 +48,27 @@ pub use popup_builder::{Bound, PopupBuilder, Unbound};
 pub use selection::{PropertyError, Selection, SelectionResult};
 pub use selector::{Output, Selector, Surface, SurfaceInfo};
 pub use session_lock::{SessionLock, SessionLockBuilder};
+pub use shell::{
+    DEFAULT_COMPONENT_NAME, Shell, ShellBuilder, ShellEventContext, SurfaceConfigBuilder,
+};
+pub use shell_config::{CompiledUiSource, ShellConfig, SurfaceComponentConfig};
 pub use shell_runtime::{DEFAULT_SURFACE_NAME, ShellRuntime};
+pub use surface_registry::{SurfaceDefinition, SurfaceEntry, SurfaceMetadata, SurfaceRegistry};
 pub use system::{
     CallbackContext, EventDispatchContext, RuntimeSurfaceConfigBuilder, ShellControl,
     SurfaceControlHandle, SurfaceTarget,
 };
 pub use value_conversion::IntoValue;
 
-pub use shell::{
-    DEFAULT_COMPONENT_NAME, Shell, ShellBuilder, ShellEventContext, SurfaceConfigBuilder,
-};
+pub(crate) mod logger {
+    #[cfg(all(feature = "log", feature = "tracing"))]
+    compile_error!("Cannot use both logging backend at one time");
 
-pub use surface_registry::{SurfaceDefinition, SurfaceEntry, SurfaceMetadata, SurfaceRegistry};
-
-pub use shell_config::{CompiledUiSource, ShellConfig, SurfaceComponentConfig};
+    #[cfg(feature = "log")]
+    pub use log::{debug, error, info, warn};
+    #[cfg(feature = "tracing")]
+    pub use tracing::{debug, error, info, warn};
+}
 
 pub mod calloop {
     pub use layer_shika_adapters::platform::calloop::*;
@@ -88,6 +97,13 @@ pub enum Error {
 }
 
 pub mod prelude {
+    pub use layer_shika_adapters::platform::wayland::Anchor;
+    pub use layer_shika_domain::prelude::{
+        LogicalPosition, LogicalRect, LogicalSize, Margins, PhysicalSize, ScaleFactor,
+        SurfaceConfig, SurfaceDimension, UiSource,
+    };
+
+    pub use crate::calloop::{Generic, Interest, Mode, PostAction, RegistrationToken, Timer};
     pub use crate::{
         AnchorEdges, AnchorStrategy, CompiledUiSource, DEFAULT_COMPONENT_NAME,
         DEFAULT_SURFACE_NAME, EventDispatchContext, EventLoopHandle, Handle, IntoValue,
@@ -98,17 +114,6 @@ pub mod prelude {
         ShellConfig, ShellControl, ShellEventContext, ShellEventLoop, ShellRuntime,
         ShellSurfaceConfigHandler, Surface, SurfaceComponentConfig, SurfaceConfigBuilder,
         SurfaceControlHandle, SurfaceDefinition, SurfaceEntry, SurfaceHandle, SurfaceInfo,
-        SurfaceMetadata, SurfaceRegistry,
+        SurfaceMetadata, SurfaceRegistry, slint, slint_interpreter,
     };
-
-    pub use crate::calloop::{Generic, Interest, Mode, PostAction, RegistrationToken, Timer};
-
-    pub use crate::{slint, slint_interpreter};
-
-    pub use layer_shika_domain::prelude::{
-        LogicalPosition, LogicalRect, LogicalSize, Margins, PhysicalSize, ScaleFactor,
-        SurfaceConfig, SurfaceDimension, UiSource,
-    };
-
-    pub use layer_shika_adapters::platform::wayland::Anchor;
 }

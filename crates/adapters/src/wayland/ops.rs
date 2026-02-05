@@ -1,14 +1,15 @@
+use std::rc::Rc;
+
+use layer_shika_domain::value_objects::lock_config::LockConfig;
+use layer_shika_domain::value_objects::lock_state::LockState;
+use layer_shika_domain::value_objects::output_handle::OutputHandle;
+use slint_interpreter::{CompilationResult, ComponentInstance, Value};
+use smithay_client_toolkit::reexports::calloop::LoopHandle;
+
 use crate::errors::Result;
 use crate::wayland::config::ShellSurfaceConfig;
 use crate::wayland::session_lock::{LockPropertyOperation, OutputFilter};
 use crate::wayland::surfaces::app_state::AppState;
-use layer_shika_domain::value_objects::lock_config::LockConfig;
-use layer_shika_domain::value_objects::lock_state::LockState;
-use layer_shika_domain::value_objects::output_handle::OutputHandle;
-use slint_interpreter::Value;
-use slint_interpreter::{CompilationResult, ComponentInstance};
-use smithay_client_toolkit::reexports::calloop::LoopHandle;
-use std::rc::Rc;
 
 type SessionLockCallback = Rc<dyn Fn(&[Value]) -> Value>;
 

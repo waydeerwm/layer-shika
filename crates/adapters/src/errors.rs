@@ -1,14 +1,14 @@
-use layer_shika_domain::errors::DomainError;
-use slint::{PlatformError, platform::SetPlatformError};
-use smithay_client_toolkit::reexports::calloop;
 use std::error::Error;
 use std::result::Result as StdResult;
+
+use layer_shika_domain::errors::DomainError;
+use slint::PlatformError;
+use slint::platform::SetPlatformError;
+use smithay_client_toolkit::reexports::calloop;
 use thiserror::Error;
 use wayland_client::backend::WaylandError;
-use wayland_client::{
-    ConnectError, DispatchError,
-    globals::{BindError, GlobalError},
-};
+use wayland_client::globals::{BindError, GlobalError};
+use wayland_client::{ConnectError, DispatchError};
 
 pub type Result<T> = StdResult<T, LayerShikaError>;
 

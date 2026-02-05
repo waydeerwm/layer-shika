@@ -5,7 +5,6 @@ pub(crate) mod rendering;
 pub(crate) mod wayland;
 
 pub use rendering::femtovg::popup_window::PopupWindow;
-
 pub use wayland::config::{MultiSurfaceConfig, ShellSurfaceConfig, WaylandSurfaceConfig};
 pub use wayland::ops::WaylandSystemOps;
 pub use wayland::session_lock::{
@@ -16,16 +15,24 @@ pub use wayland::surfaces::app_state::AppState;
 pub use wayland::surfaces::popup_manager::PopupManager;
 pub use wayland::surfaces::surface_state::SurfaceState;
 
+pub(crate) mod logger {
+    #[cfg(all(feature = "log", feature = "tracing"))]
+    compile_error!("Cannot use both logging backend at one time");
+
+    #[cfg(feature = "log")]
+    pub use log::{debug, error, info, warn};
+    #[cfg(feature = "tracing")]
+    pub use tracing::{debug, error, info, warn};
+}
+
 pub mod platform {
-    pub use slint;
-    pub use slint_interpreter;
+    pub use {slint, slint_interpreter};
 
     pub mod calloop {
-        pub use smithay_client_toolkit::reexports::calloop::channel;
         pub use smithay_client_toolkit::reexports::calloop::generic::Generic;
         pub use smithay_client_toolkit::reexports::calloop::timer::{TimeoutAction, Timer};
         pub use smithay_client_toolkit::reexports::calloop::{
-            EventSource, InsertError, Interest, Mode, PostAction, RegistrationToken,
+            EventSource, InsertError, Interest, Mode, PostAction, RegistrationToken, channel,
         };
     }
 

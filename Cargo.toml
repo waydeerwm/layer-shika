@@ -16,6 +16,11 @@ workspace = true
 [dependencies]
 layer-shika-composition.workspace = true
 
+[features]
+default = ["log"]
+log = ["layer-shika-composition/log"]
+tracing = ["layer-shika-composition/tracing"]
+
 [workspace]
 resolver = "2"
 members = [
@@ -60,13 +65,14 @@ slint-interpreter = { version = "1.14.1", default-features = false, features = [
 ] }
 smithay-client-toolkit = "0.20.0"
 thiserror = "2.0.17"
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 wayland-client = "0.31.11"
 wayland-protocols = { version = "0.32.9", features = ["client", "staging"] }
 xkbcommon = { version = "0.9.0", features = ["wayland"] }
 
 layer-shika-domain = { version = "0.3.1", path = "crates/domain" }
-layer-shika-adapters = { version = "0.3.1", path = "crates/adapters" }
-layer-shika-composition = { version = "0.3.1", path = "crates/composition" }
+layer-shika-adapters = { version = "0.3.1", path = "crates/adapters", default-features = false }
+layer-shika-composition = { version = "0.3.1", path = "crates/composition", default-features = false }
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }

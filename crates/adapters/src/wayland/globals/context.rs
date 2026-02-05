@@ -1,8 +1,7 @@
 use crate::{
     bind_globals, errors::LayerShikaError,
     rendering::egl::render_context_manager::RenderContextManager,
-};
-use log::info;
+logger};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_shell_v1::ZwlrLayerShellV1;
 use std::rc::Rc;
 use wayland_client::{
@@ -55,15 +54,16 @@ impl GlobalContext {
             .into_iter()
             .filter(|global| global.interface == "wl_output")
             .map(|global| {
-                info!(
+                logger::info!(
                     "Found wl_output global with name: {} at version {}",
-                    global.name, global.version
+                    global.name,
+                    global.version
                 );
                 global.name
             })
             .collect();
 
-        info!(
+        logger::info!(
             "Total unique wl_output globals found: {}",
             output_names.len()
         );
@@ -71,7 +71,7 @@ impl GlobalContext {
         let outputs: Vec<WlOutput> = output_names
             .iter()
             .map(|&name| {
-                info!("Binding wl_output with name: {}", name);
+                logger::info!("Binding wl_output with name: {}", name);
                 global_list
                     .registry()
                     .bind::<WlOutput, _, _>(name, 4, queue_handle, ())
@@ -84,7 +84,7 @@ impl GlobalContext {
             });
         }
 
-        info!("Discovered {} output(s)", outputs.len());
+        logger::info!("Discovered {} output(s)", outputs.len());
 
         let xdg_wm_base = global_list
             .bind::<XdgWmBase, _, _>(queue_handle, 1..=6, ())
@@ -103,23 +103,23 @@ impl GlobalContext {
             .ok();
 
         if xdg_wm_base.is_none() {
-            info!("xdg-shell protocol not available, popup support disabled");
+            logger::info!("xdg-shell protocol not available, popup support disabled");
         }
 
         if session_lock_manager.is_none() {
-            info!("ext-session-lock protocol not available, session lock disabled");
+            logger::info!("ext-session-lock protocol not available, session lock disabled");
         }
 
         if fractional_scale_manager.is_none() {
-            info!("Fractional scale protocol not available, using integer scaling");
+            logger::info!("Fractional scale protocol not available, using integer scaling");
         }
 
         if viewporter.is_none() {
-            info!("Viewporter protocol not available");
+            logger::info!("Viewporter protocol not available");
         }
 
         if layer_shell.is_none() {
-            info!("wlr-layer-shell protocol not available, layer surfaces disabled");
+            logger::info!("wlr-layer-shell protocol not available, layer surfaces disabled");
         }
 
         let render_context_manager = RenderContextManager::new(&connection.display().id())?;

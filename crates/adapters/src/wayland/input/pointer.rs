@@ -1,12 +1,12 @@
-use crate::wayland::surfaces::pointer_utils::wayland_button_to_slint;
-use slint::{LogicalPosition, platform::WindowEvent};
-use wayland_client::{
-    Proxy, WEnum,
-    backend::ObjectId,
-    protocol::{wl_pointer, wl_surface::WlSurface},
-};
+use slint::LogicalPosition;
+use slint::platform::WindowEvent;
+use wayland_client::backend::ObjectId;
+use wayland_client::protocol::wl_pointer;
+use wayland_client::protocol::wl_surface::WlSurface;
+use wayland_client::{Proxy, WEnum};
 
 use super::state::PointerInputState;
+use crate::wayland::surfaces::pointer_utils::wayland_button_to_slint;
 
 pub trait PointerEventTarget {
     fn to_logical_position(&self, surface_x: f64, surface_y: f64) -> LogicalPosition;

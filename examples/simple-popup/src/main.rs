@@ -1,5 +1,6 @@
-use layer_shika::prelude::*;
 use std::path::PathBuf;
+
+use layer_shika::prelude::*;
 
 fn main() -> Result<()> {
     env_logger::builder()

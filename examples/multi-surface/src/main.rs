@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use layer_shika::prelude::*;
 use layer_shika::slint_interpreter::Value;
-use std::path::PathBuf;
 
 fn main() -> Result<()> {
     env_logger::builder()

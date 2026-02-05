@@ -1,9 +1,10 @@
+use std::path::PathBuf;
+use std::rc::Rc;
+
 use layer_shika::calloop::channel::Sender;
 use layer_shika::prelude::*;
 use layer_shika::slint::SharedString;
 use layer_shika::slint_interpreter::Value;
-use std::path::PathBuf;
-use std::rc::Rc;
 
 #[derive(Debug)]
 enum UiUpdate {

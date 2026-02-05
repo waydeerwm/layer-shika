@@ -1,6 +1,7 @@
-use crate::value_objects::output_info::OutputInfo;
 use std::fmt;
 use std::rc::Rc;
+
+use crate::value_objects::output_info::OutputInfo;
 
 type OutputFilter = Rc<dyn Fn(&OutputInfo) -> bool>;
 
