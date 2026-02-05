@@ -681,6 +681,31 @@ impl Shell {
         }
     }
 
+    fn apply_surface_resize_input_region(
+        ctx: &mut EventDispatchContext<'_>,
+        target: &SurfaceTarget,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    ) {
+        log::debug!(
+            "Surface command: Resize {:?} to x{}y{} {}x{} ",
+            target,
+            x,
+            y,
+            width,
+            height
+        );
+        let region = &ctx.create_region();
+        for surface in Self::resolve_surface_target(ctx, target) {
+            if let Some(r) = region {
+                r.add(x, y, width, height);
+                surface.set_input_region(r);
+            }
+        }
+    }
+
     fn apply_surface_resize(
         ctx: &mut EventDispatchContext<'_>,
         target: &SurfaceTarget,
@@ -795,6 +820,15 @@ impl Shell {
                 log::warn!(
                     "SetOutputPolicy is not yet implemented - requires runtime surface spawning"
                 );
+            }
+            SurfaceCommand::SetInputRegion {
+                target,
+                x,
+                y,
+                width,
+                height,
+            } => {
+                Self::apply_surface_resize_input_region(ctx, &target, x, y, width, height);
             }
             SurfaceCommand::SetScaleFactor { target, factor } => {
                 log::debug!(

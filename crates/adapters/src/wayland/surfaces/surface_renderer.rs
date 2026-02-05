@@ -8,6 +8,7 @@ use layer_shika_domain::surface_dimensions::SurfaceDimensions;
 use log::{error, info};
 use slint::PhysicalSize;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
+use wayland_client::protocol::wl_surface::WlSurface;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +64,10 @@ impl<W: RenderableWindow> SurfaceRenderer<W> {
 
     pub fn layer_surface(&self) -> Rc<ZwlrLayerSurfaceV1> {
         Rc::clone(self.layer_surface.inner())
+    }
+
+    pub fn surface(&self) -> Rc<WlSurface> {
+        Rc::clone(self.surface.inner())
     }
 
     pub const fn height(&self) -> u32 {

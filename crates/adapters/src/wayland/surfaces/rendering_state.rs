@@ -4,7 +4,8 @@ use crate::rendering::femtovg::renderable_window::RenderableWindow;
 use crate::wayland::surfaces::surface_renderer::{SurfaceRenderer, SurfaceRendererParams};
 use slint::PhysicalSize;
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
-use crate::wayland::managed_proxies::ManagedWpFractionalScaleV1;
+use wayland_client::protocol::wl_surface::WlSurface;
+use crate::wayland::managed_proxies::{ManagedWpFractionalScaleV1};
 
 pub struct RenderingState<W: RenderableWindow> {
     renderer: SurfaceRenderer<W>,
@@ -44,6 +45,10 @@ impl<W: RenderableWindow> RenderingState<W> {
 
     pub fn layer_surface(&self) -> Rc<ZwlrLayerSurfaceV1> {
         self.renderer.layer_surface()
+    }
+
+    pub fn surface(&self) -> Rc<WlSurface> {
+        self.renderer.surface()
     }
 
     pub fn fractional_scale(&self) -> Option<&ManagedWpFractionalScaleV1> {

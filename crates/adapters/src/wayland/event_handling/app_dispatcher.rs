@@ -18,8 +18,8 @@ use wayland_client::{
         wl_keyboard::{self, WlKeyboard},
         wl_output::{self, WlOutput},
         wl_pointer::{self, WlPointer},
-        wl_registry::Event,
-        wl_registry::WlRegistry,
+        wl_region::WlRegion,
+        wl_registry::{Event, WlRegistry},
         wl_seat::WlSeat,
         wl_surface::WlSurface,
     },
@@ -716,6 +716,7 @@ macro_rules! impl_empty_dispatch_app {
 impl_empty_dispatch_app!(
     (WlCompositor, ()),
     (WlSurface, ()),
+    (WlRegion, ()),
     (ZwlrLayerShellV1, ()),
     (ExtSessionLockManagerV1, ()),
     (WlSeat, ()),

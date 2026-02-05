@@ -1,0 +1,43 @@
+use layer_shika::{prelude::*, slint_interpreter::Value};
+use std::path::PathBuf;
+
+fn main() -> Result<()> {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .init();
+
+    log::info!("Starting surface-input-region example");
+
+    let ui_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/ui.slint");
+
+    let compiled = Shell::compile_file(&ui_path).expect("Compilation error");
+
+    let mut shell = Shell::from_compilation(compiled)
+        .surface("MainWindow")
+        .height(64)
+        .anchor(AnchorEdges::top_bar())
+        .exclusive_zone(32)
+        .namespace("surface-input-region-example")
+        .build()?;
+
+    // Hacky way to get a surface size because `init` callback is called before Shell::run()
+    shell
+        .select(Surface::named("MainWindow"))
+        .on_callback_with_args("width-changed", |args, ctx| {
+            let Value::Number(width) = args[0] else {
+                log::error!("MainWindow.width-changed provided no width");
+                return;
+            };
+
+            if let Err(e) =
+                ctx.control()
+                    .surface("MainWindow")
+                    .set_input_region(0, 0, width as i32, 32)
+            {
+                log::error!("Failed to set_input_region: {e}");
+            }
+        });
+
+    shell.run()?;
+    Ok(())
+}

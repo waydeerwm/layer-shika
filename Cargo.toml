@@ -31,6 +31,7 @@ members = [
     "examples/session-lock-selectors",
     "examples/session-lock-standalone",
     "examples/simple-popup",
+    "examples/surface-input-region",
 ]
 
 [workspace.package]

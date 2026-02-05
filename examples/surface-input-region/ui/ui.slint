@@ -1,0 +1,47 @@
+import { Button } from "std-widgets.slint";
+export component MainWindow inherits Window {
+    height: 32px;
+    background: transparent;
+
+    Rectangle {
+        background: white;
+        y: 0px;
+        height: 32px;
+        width <=> root.width;
+
+        VerticalLayout {
+            alignment: center;
+            HorizontalLayout {
+                alignment: center;
+                Text {
+                    text: "This area is exclusive";
+                    color: black;
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        background: rgba(0,0,0,0.5);
+        y: 32px;
+        height: 32px;
+        width <=> root.width;
+
+        VerticalLayout {
+            alignment: center;
+            HorizontalLayout {
+                alignment: center;
+                Text {
+                    text: "This area is transparent for the pointer";
+                    color: white;
+                }
+            }
+        }
+    }
+
+    callback width-changed(length);
+
+    changed width => {
+        width-changed(root.width);
+    }
+}

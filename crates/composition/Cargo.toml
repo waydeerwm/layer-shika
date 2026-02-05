@@ -18,4 +18,5 @@ layer-shika-adapters.workspace = true
 layer-shika-domain.workspace = true
 log.workspace = true
 spin_on.workspace = true
+smithay-client-toolkit.workspace = true
 thiserror.workspace = true

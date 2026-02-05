@@ -89,6 +89,10 @@ impl ManagedWlSurface {
             connection,
         }
     }
+
+    pub const fn inner(&self) -> &Rc<WlSurface> {
+        &self.surface
+    }
 }
 
 impl Deref for ManagedWlSurface {

@@ -1,0 +1,14 @@
+[package]
+name = "surface-input-region"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+layer-shika = { path = "../.." }
+env_logger = "0.11.7"
+log.workspace = true

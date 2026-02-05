@@ -20,6 +20,7 @@ use slint::{LogicalPosition, PhysicalSize};
 use slint::platform::WindowEvent;
 use slint_interpreter::{ComponentInstance, CompilationResult};
 use smithay_client_toolkit::reexports::protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::ZwlrLayerSurfaceV1;
+use wayland_client::protocol::wl_region::WlRegion;
 use wayland_client::{
     Proxy,
     backend::ObjectId,
@@ -199,6 +200,13 @@ impl SurfaceState {
             .borrow_mut()
             .update_output_size(output_size);
         self.event_context.borrow().update_output_size(output_size);
+    }
+
+    pub fn set_input_region(&mut self, region: &WlRegion) {
+        self.rendering.surface().set_input_region(Some(region));
+        self.rendering.surface().commit();
+
+        region.destroy();
     }
 
     pub fn output_size(&self) -> PhysicalSize {
