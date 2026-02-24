@@ -10,7 +10,7 @@ fn main() -> Result<()> {
 
     let ui_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/ui.slint");
 
-    let compiled = Shell::compile_file(&ui_path).expect("Compilation error");
+    let compiled = Shell::compile_file(&ui_path)?;
 
     let mut shell = Shell::from_compilation(compiled)
         .surface("MainWindow")
@@ -24,15 +24,18 @@ fn main() -> Result<()> {
     shell
         .select(Surface::named("MainWindow"))
         .on_callback_with_args("width-changed", |args, ctx| {
-            let Value::Number(width) = args[0] else {
+            let Some(Value::Number(width)) = args.first() else {
                 log::error!("MainWindow.width-changed provided no width");
                 return;
             };
 
+            #[allow(clippy::cast_possible_truncation)]
+            let width_i32 = *width as i32;
+
             if let Err(e) =
                 ctx.control()
                     .surface("MainWindow")
-                    .set_input_region(0, 0, width as i32, 32)
+                    .set_input_region(0, 0, width_i32, 32)
             {
                 log::error!("Failed to set_input_region: {e}");
             }
