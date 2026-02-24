@@ -1,5 +1,7 @@
-use layer_shika::{prelude::*, slint_interpreter::Value};
 use std::path::PathBuf;
+
+use layer_shika::prelude::*;
+use layer_shika::slint_interpreter::Value;
 
 fn main() -> Result<()> {
     env_logger::builder()
@@ -32,10 +34,10 @@ fn main() -> Result<()> {
             #[allow(clippy::cast_possible_truncation)]
             let width_i32 = *width as i32;
 
-            if let Err(e) =
-                ctx.control()
-                    .surface("MainWindow")
-                    .set_input_region(0, 0, width_i32, 32)
+            if let Err(e) = ctx
+                .control()
+                .surface("MainWindow")
+                .set_input_region(0, 0, width_i32, 32)
             {
                 log::error!("Failed to set_input_region: {e}");
             }

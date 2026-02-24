@@ -1,3 +1,6 @@
+use std::cell::Cell;
+use std::rc::Rc;
+
 use layer_shika_adapters::platform::calloop::channel;
 use layer_shika_adapters::platform::slint::ComponentHandle;
 use layer_shika_adapters::platform::slint_interpreter::{
@@ -20,8 +23,6 @@ use layer_shika_domain::value_objects::popup_position::PopupPosition;
 use layer_shika_domain::value_objects::popup_size::PopupSize;
 use layer_shika_domain::value_objects::surface_instance_id::SurfaceInstanceId;
 use smithay_client_toolkit::reexports::client::protocol::wl_region::WlRegion;
-use std::cell::Cell;
-use std::rc::Rc;
 
 use crate::event_loop::FromAppState;
 use crate::layer_surface::LayerSurfaceHandle;
