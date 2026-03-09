@@ -133,7 +133,8 @@ pub mod window;
 
 pub use event::{EventDispatchContext, EventLoopHandle, ShellEventLoop};
 pub use layer_shika_composition::{
-    CallbackContext, Error, Handle, Result, SurfaceHandle, SurfaceInstanceId, SurfaceTarget,
+    CallbackContext, Error, Handle, LayerShell, LayerShellWindow, Result, SurfaceHandle,
+    SurfaceInstanceId, SurfaceTarget,
 };
 pub use output::{OutputGeometry, OutputHandle, OutputInfo, OutputPolicy, OutputRegistry};
 pub use shell::{

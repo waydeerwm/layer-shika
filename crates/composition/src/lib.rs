@@ -18,9 +18,9 @@ pub mod value_conversion;
 use std::result::Result as StdResult;
 
 pub use event_loop::{EventLoopHandle, ShellEventLoop};
-pub use layer_shika_adapters::PopupWindow;
 use layer_shika_adapters::errors::LayerShikaError;
 pub use layer_shika_adapters::platform::{slint, slint_interpreter};
+pub use layer_shika_adapters::{LayerShell, LayerShellWindow, PopupWindow};
 pub use layer_shika_domain::entities::output_registry::OutputRegistry;
 use layer_shika_domain::errors::DomainError;
 pub use layer_shika_domain::prelude::AnchorStrategy;
@@ -107,13 +107,14 @@ pub mod prelude {
     pub use crate::{
         AnchorEdges, AnchorStrategy, CompiledUiSource, DEFAULT_COMPONENT_NAME,
         DEFAULT_SURFACE_NAME, EventDispatchContext, EventLoopHandle, Handle, IntoValue,
-        KeyboardInteractivity, Layer, LayerSurfaceHandle, LockSelection, Output, OutputGeometry,
-        OutputHandle, OutputInfo, OutputPolicy, OutputRegistry, PopupBuilder, PopupConfig,
-        PopupHandle, PopupPosition, PopupShell, PopupSize, PopupWindow, PropertyError, Result,
-        Selection, SelectionResult, Selector, SessionLock, SessionLockBuilder, Shell, ShellBuilder,
-        ShellConfig, ShellControl, ShellEventContext, ShellEventLoop, ShellRuntime,
-        ShellSurfaceConfigHandler, Surface, SurfaceComponentConfig, SurfaceConfigBuilder,
-        SurfaceControlHandle, SurfaceDefinition, SurfaceEntry, SurfaceHandle, SurfaceInfo,
-        SurfaceMetadata, SurfaceRegistry, slint, slint_interpreter,
+        KeyboardInteractivity, Layer, LayerShell, LayerShellWindow, LayerSurfaceHandle,
+        LockSelection, Output, OutputGeometry, OutputHandle, OutputInfo, OutputPolicy,
+        OutputRegistry, PopupBuilder, PopupConfig, PopupHandle, PopupPosition, PopupShell,
+        PopupSize, PopupWindow, PropertyError, Result, Selection, SelectionResult, Selector,
+        SessionLock, SessionLockBuilder, Shell, ShellBuilder, ShellConfig, ShellControl,
+        ShellEventContext, ShellEventLoop, ShellRuntime, ShellSurfaceConfigHandler, Surface,
+        SurfaceComponentConfig, SurfaceConfigBuilder, SurfaceControlHandle, SurfaceDefinition,
+        SurfaceEntry, SurfaceHandle, SurfaceInfo, SurfaceMetadata, SurfaceRegistry, slint,
+        slint_interpreter,
     };
 }

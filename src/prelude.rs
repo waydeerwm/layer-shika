@@ -28,6 +28,6 @@ pub use crate::window::{
     PopupHandle, PopupPosition, PopupShell, PopupSize,
 };
 pub use crate::{
-    CallbackContext, Error, Handle, Result, SurfaceHandle, SurfaceInstanceId, SurfaceTarget,
-    calloop,
+    CallbackContext, Error, Handle, LayerShell, LayerShellWindow, Result, SurfaceHandle,
+    SurfaceInstanceId, SurfaceTarget, calloop,
 };

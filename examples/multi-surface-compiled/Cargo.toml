@@ -1,0 +1,18 @@
+[package]
+name = "multi-surface-compiled"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+layer-shika = { path = "../.." }
+env_logger = "0.11.7"
+log.workspace = true
+slint.workspace = true
+
+[build-dependencies]
+slint-build = "1.15.1"

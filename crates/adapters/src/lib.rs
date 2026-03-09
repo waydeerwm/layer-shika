@@ -6,6 +6,7 @@ pub(crate) mod wayland;
 
 pub use rendering::femtovg::popup_window::PopupWindow;
 pub use wayland::config::{MultiSurfaceConfig, ShellSurfaceConfig, WaylandSurfaceConfig};
+pub use wayland::layer_shell_platform::{LayerShell, LayerShellWindow};
 pub use wayland::ops::WaylandSystemOps;
 pub use wayland::session_lock::{
     LockSurfaceOutputContext, OutputFilter, create_lock_property_operation_with_output_filter,
@@ -26,7 +27,8 @@ pub(crate) mod logger {
 }
 
 pub mod platform {
-    pub use {slint, slint_interpreter};
+    pub use slint;
+    pub use slint_interpreter;
 
     pub mod calloop {
         pub use smithay_client_toolkit::reexports::calloop::generic::Generic;
