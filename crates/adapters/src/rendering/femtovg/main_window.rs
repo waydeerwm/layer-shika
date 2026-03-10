@@ -1,9 +1,9 @@
 use core::ops::Deref;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use slint::platform::femtovg_renderer::FemtoVGRenderer;
-use slint::platform::{Renderer, WindowAdapter, WindowEvent};
+use slint::platform::{Renderer, WindowAdapter, WindowEvent, WindowProperties};
 use slint::{PhysicalSize, Window, WindowSize};
 
 use super::renderable_window::{RenderState, RenderableWindow};
@@ -16,6 +16,7 @@ pub struct FemtoVGWindow {
     render_state: Cell<RenderState>,
     size: Cell<PhysicalSize>,
     scale_factor: Cell<f32>,
+    window_properties_handler: RefCell<Option<Rc<dyn for<'a> Fn(WindowProperties<'a>)>>>,
 }
 
 impl FemtoVGWindow {
@@ -29,8 +30,13 @@ impl FemtoVGWindow {
                 render_state: Cell::new(RenderState::Clean),
                 size: Cell::new(PhysicalSize::default()),
                 scale_factor: Cell::new(1.),
+                window_properties_handler: RefCell::new(None),
             }
         })
+    }
+
+    pub fn set_window_properties_handler(&self, handler: Rc<dyn for<'a> Fn(WindowProperties<'a>)>) {
+        self.window_properties_handler.replace(Some(handler));
     }
 }
 
@@ -88,6 +94,12 @@ impl WindowAdapter for FemtoVGWindow {
 
     fn request_redraw(&self) {
         RenderableWindow::request_redraw(self);
+    }
+
+    fn update_window_properties(&self, properties: WindowProperties<'_>) {
+        if let Some(handler) = self.window_properties_handler.borrow().as_ref() {
+            handler(properties);
+        }
     }
 }
 

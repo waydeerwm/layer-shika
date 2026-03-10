@@ -29,7 +29,7 @@ use wayland_client::{
 use wayland_protocols::wp::fractional_scale::v1::client::wp_fractional_scale_v1::WpFractionalScaleV1;
 
 pub struct SurfaceState {
-    component: ComponentState,
+    component: Option<ComponentState>,
     rendering: RenderingState<FemtoVGWindow>,
     event_context: RefCell<EventContext>,
     display_metrics: SharedDisplayMetrics,
@@ -39,20 +39,21 @@ pub struct SurfaceState {
 
 impl SurfaceState {
     pub fn new(builder: SurfaceStateBuilder) -> Result<Self> {
-        let component_definition =
-            builder
-                .component_definition
-                .ok_or_else(|| LayerShikaError::InvalidInput {
-                    message: "Component definition is required".into(),
-                })?;
         let window = builder
             .window
             .ok_or_else(|| LayerShikaError::InvalidInput {
                 message: "Window is required".into(),
             })?;
 
-        let component =
-            ComponentState::new(component_definition, builder.compilation_result, &window)?;
+        let component = if let Some(component_definition) = builder.component_definition {
+            Some(ComponentState::new(
+                component_definition,
+                builder.compilation_result,
+                &window,
+            )?)
+        } else {
+            None
+        };
 
         let connection = builder
             .connection
@@ -211,13 +212,18 @@ impl SurfaceState {
         self.display_metrics.borrow().output_size()
     }
 
-    pub const fn component_instance(&self) -> &ComponentInstance {
-        self.component.component_instance()
+    pub fn component_instance(&self) -> &ComponentInstance {
+        self.component
+            .as_ref()
+            .expect("Surface has no Slint component instance")
+            .component_instance()
     }
 
     #[must_use]
     pub fn compilation_result(&self) -> Option<Rc<CompilationResult>> {
-        self.component.compilation_result()
+        self.component
+            .as_ref()
+            .and_then(ComponentState::compilation_result)
     }
 
     pub fn render_frame_if_dirty(&self) -> Result<()> {

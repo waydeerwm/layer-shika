@@ -17,6 +17,7 @@ workspace = true
 glutin.workspace = true
 layer-shika-domain.workspace = true
 log = { workspace = true, optional = true }
+ordermap.workspace = true
 raw-window-handle.workspace = true
 slint.workspace = true
 slint-interpreter.workspace = true

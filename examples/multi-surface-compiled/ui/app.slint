@@ -1,0 +1,35 @@
+import { Button } from "std-widgets.slint";
+
+export component TopBar inherits Window {
+    title: "TopBar";
+    height: 60px;
+    Rectangle {
+        background: blue;
+        VerticalLayout {
+            padding: 8px;
+            label := Text {
+                text: "Button not clicked";
+                color: pink;
+            }
+            Button {
+                text: "Click Me";
+                clicked => {
+                    label.text = "Button clicked!";
+                }
+            }
+        }
+    }
+}
+
+export component BottomBar inherits Window {
+    title: "BottomBar";
+    height: 60px;
+    Rectangle {
+        background: green;
+        Text {
+            font-size: 48px;
+            text: "Hello";
+            color: red;
+        }
+    }
+}

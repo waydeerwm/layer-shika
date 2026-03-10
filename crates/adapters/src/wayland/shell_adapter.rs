@@ -68,6 +68,8 @@ pub struct WaylandShellSystem {
     connection: Rc<Connection>,
     event_queue: EventQueue<AppState>,
     event_loop: EventLoop<'static, AppState>,
+    global_ctx: Option<Rc<GlobalContext>>,
+    shared_serial: Option<Rc<SharedPointerSerial>>,
 }
 
 impl WaylandShellSystem {
@@ -84,6 +86,8 @@ impl WaylandShellSystem {
             connection,
             event_queue,
             event_loop,
+            global_ctx: None,
+            shared_serial: None,
         })
     }
 
@@ -107,6 +111,8 @@ impl WaylandShellSystem {
             connection,
             event_queue,
             event_loop,
+            global_ctx: None,
+            shared_serial: None,
         })
     }
 
@@ -123,6 +129,42 @@ impl WaylandShellSystem {
             connection,
             event_queue,
             event_loop,
+            global_ctx: None,
+            shared_serial: None,
+        })
+    }
+
+    pub fn new_layer_shell() -> Result<Self> {
+        logger::info!("Initializing WindowingSystem for LayerShell platform");
+        let (connection, event_queue) = Self::init_wayland_connection()?;
+        let event_loop =
+            EventLoop::try_new().map_err(|e| EventLoopError::Creation { source: e })?;
+
+        let global_ctx = Rc::new(GlobalContext::initialize(
+            connection.as_ref(),
+            &event_queue.handle(),
+        )?);
+
+        let pointer = Rc::new(global_ctx.seat.get_pointer(&event_queue.handle(), ()));
+        let keyboard = Rc::new(global_ctx.seat.get_keyboard(&event_queue.handle(), ()));
+        let shared_serial = Rc::new(SharedPointerSerial::new());
+
+        let mut state = AppState::new(
+            ManagedWlPointer::new(Rc::clone(&pointer), Rc::new(connection.as_ref().clone())),
+            ManagedWlKeyboard::new(Rc::clone(&keyboard), Rc::new(connection.as_ref().clone())),
+            Rc::clone(&shared_serial),
+        );
+
+        state.set_queue_handle(event_queue.handle());
+        state.set_global_context(Rc::clone(&global_ctx));
+
+        Ok(Self {
+            state,
+            connection,
+            event_queue,
+            event_loop,
+            global_ctx: Some(global_ctx),
+            shared_serial: Some(shared_serial),
         })
     }
 
@@ -811,6 +853,22 @@ impl WaylandShellSystem {
 
     pub fn app_state_mut(&mut self) -> &mut AppState {
         &mut self.state
+    }
+
+    pub fn connection(&self) -> Rc<Connection> {
+        Rc::clone(&self.connection)
+    }
+
+    pub fn event_queue_handle(&self) -> QueueHandle<AppState> {
+        self.event_queue.handle()
+    }
+
+    pub fn global_context(&self) -> Option<Rc<GlobalContext>> {
+        self.global_ctx.clone()
+    }
+
+    pub fn shared_serial(&self) -> Option<Rc<SharedPointerSerial>> {
+        self.shared_serial.clone()
     }
 
     pub fn spawn_surface(&mut self, config: &ShellSurfaceConfig) -> Result<Vec<OutputHandle>> {
