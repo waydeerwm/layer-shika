@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::fd::BorrowedFd;
 use std::rc::Rc;
+use std::time::Duration;
 
 use layer_shika_domain::entities::output_registry::OutputRegistry;
 use layer_shika_domain::value_objects::handle::SurfaceHandle;
@@ -10,6 +11,9 @@ use layer_shika_domain::value_objects::lock_state::LockState;
 use layer_shika_domain::value_objects::output_handle::OutputHandle;
 use layer_shika_domain::value_objects::output_info::OutputInfo;
 use slint_interpreter::{CompilationResult, ComponentDefinition, Value};
+use smithay_client_toolkit::reexports::calloop::{
+    LoopHandle, RegistrationToken, timer::TimeoutAction, timer::Timer,
+};
 use wayland_client::Proxy;
 use wayland_client::backend::ObjectId;
 use wayland_client::protocol::wl_keyboard;
@@ -79,6 +83,9 @@ pub struct AppState {
     lock_callbacks: Vec<LockCallback>,
     lock_property_operations: Vec<LockPropertyOperation>,
     queue_handle: Option<wayland_client::QueueHandle<AppState>>,
+    loop_handle: Option<LoopHandle<'static, AppState>>,
+    repeat_token: Option<RegistrationToken>,
+    repeat_key: Option<u32>,
 }
 
 impl AppState {
@@ -110,6 +117,9 @@ impl AppState {
             lock_callbacks: Vec::new(),
             lock_property_operations: Vec::new(),
             queue_handle: None,
+            loop_handle: None,
+            repeat_token: None,
+            repeat_key: None,
         }
     }
 
@@ -128,6 +138,11 @@ impl AppState {
 
     pub fn set_queue_handle(&mut self, queue_handle: wayland_client::QueueHandle<AppState>) {
         self.queue_handle = Some(queue_handle);
+    }
+
+    /// handle back into the event loop, used by the repeat timer
+    pub fn set_loop_handle(&mut self, handle: LoopHandle<'static, AppState>) {
+        self.loop_handle = Some(handle);
     }
 
     pub fn lock_manager(&self) -> Option<&SessionLockManager> {
@@ -690,6 +705,7 @@ impl AppState {
 
         let surface_id = surface.id();
         if self.keyboard_input_state.focused_surface_id() == Some(&surface_id) {
+            self.stop_repeat();
             self.keyboard_input_state.reset();
             self.set_keyboard_focus(None);
         }
@@ -702,6 +718,20 @@ impl AppState {
             }
         }
 
+        self.dispatch_key(key, state);
+
+        match state {
+            wl_keyboard::KeyState::Pressed => self.start_repeat(key),
+            wl_keyboard::KeyState::Released => {
+                if self.repeat_key == Some(key) {
+                    self.stop_repeat();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn dispatch_key(&mut self, key: u32, state: wl_keyboard::KeyState) {
         let Some(focus_key) = self.keyboard_focus_key.clone() else {
             return;
         };
@@ -712,6 +742,42 @@ impl AppState {
         if let Some(surface) = self.surfaces.get_mut(&focus_key) {
             surface.handle_keyboard_key(&surface_id, key, state, &mut self.keyboard_state);
         }
+    }
+
+    fn start_repeat(&mut self, key: u32) {
+        self.stop_repeat();
+
+        let Some(handle) = self.loop_handle.clone() else {
+            return;
+        };
+
+        let rate = self.keyboard_state.repeat_rate;
+        let delay = self.keyboard_state.repeat_delay;
+        if rate <= 0 || delay < 0 {
+            return;
+        }
+        let interval = Duration::from_millis(1000 / rate as u64);
+
+        self.repeat_key = Some(key);
+
+        let token = handle.insert_source(
+            Timer::from_duration(Duration::from_millis(delay as u64)),
+            move |_deadline, _metadata, app_state: &mut AppState| {
+                if app_state.repeat_key != Some(key) {
+                    return TimeoutAction::Drop;
+                }
+                app_state.dispatch_key(key, wl_keyboard::KeyState::Pressed);
+                TimeoutAction::ToDuration(interval)
+            },
+        );
+        self.repeat_token = token.ok();
+    }
+
+    fn stop_repeat(&mut self) {
+        if let (Some(handle), Some(token)) = (&self.loop_handle, self.repeat_token.take()) {
+            handle.remove(token);
+        }
+        self.repeat_key = None;
     }
 
     pub fn handle_modifiers(

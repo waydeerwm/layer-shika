@@ -77,7 +77,8 @@ impl WaylandShellSystem {
         let event_loop =
             EventLoop::try_new().map_err(|e| EventLoopError::Creation { source: e })?;
 
-        let state = Self::init_state(config, &connection, &mut event_queue)?;
+        let mut state = Self::init_state(config, &connection, &mut event_queue)?;
+        state.set_loop_handle(event_loop.handle());
 
         Ok(Self {
             state,
@@ -100,7 +101,8 @@ impl WaylandShellSystem {
         let event_loop =
             EventLoop::try_new().map_err(|e| EventLoopError::Creation { source: e })?;
 
-        let state = Self::init_state_multi(configs, &connection, &mut event_queue)?;
+        let mut state = Self::init_state_multi(configs, &connection, &mut event_queue)?;
+        state.set_loop_handle(event_loop.handle());
 
         Ok(Self {
             state,
@@ -116,7 +118,8 @@ impl WaylandShellSystem {
         let event_loop =
             EventLoop::try_new().map_err(|e| EventLoopError::Creation { source: e })?;
 
-        let state = Self::init_state_minimal(&connection, &mut event_queue)?;
+        let mut state = Self::init_state_minimal(&connection, &mut event_queue)?;
+        state.set_loop_handle(event_loop.handle());
 
         Ok(Self {
             state,
